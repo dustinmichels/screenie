@@ -41,7 +41,7 @@ cp -R build/DerivedData/Build/Products/Release/Screenie.app /Applications/
 open /Applications/Screenie.app
 ```
 
-A source build is signed ad hoc, so it runs on the Mac that built it without a developer certificate. Every rebuild has a new signature, so macOS asks for Desktop/Documents access again after each one. Developer ID builds count as the same app from one version to the next, so the permission carries over. `mise run install` overwrites whatever is in `/Applications`, including a notarized build. See [`docs/install.md`](docs/install.md) for Xcode steps, rebuilding with XcodeGen, and uninstalling.
+A source build is signed ad hoc, so it runs on the Mac that built it without a developer certificate. Every rebuild has a new signature, so macOS asks for Desktop/Documents access again after each one. Developer ID builds count as the same app from one version to the next, so the permission carries over. `mise run install` overwrites whatever is in `/Applications`, including a notarized build. See [`docs/developers.md`](docs/developers.md) for Xcode steps and rebuilding with XcodeGen, and [`docs/install.md`](docs/install.md) for uninstalling.
 
 ### Updating
 
@@ -116,7 +116,7 @@ The app icon is drawn by `scripts/make-icon.swift`. Edit the script and run `swi
 
 ## Docs
 
-Install and how-it-works docs live in `docs/` (VitePress). Preview them with:
+User (install, how it works) and developer docs live in `docs/` (VitePress). Preview them with:
 
 ```sh
 mise run docs   # or: cd docs && bun install && bun run dev
