@@ -1,0 +1,39 @@
+[tools]
+xcodegen = "2.46.0"
+bun = "1.4.4"
+
+[tasks.generate]
+description = "Regenerate Screenie.xcodeproj from project.yml"
+run = "xcodegen generate"
+
+[tasks.build]
+description = "Build the Release app into build/DerivedData"
+run = "xcodebuild -project Screenie.xcodeproj -scheme Screenie -configuration Release -destination 'generic/platform=macOS' -derivedDataPath build/DerivedData build -quiet"
+
+[tasks.install]
+description = "Build, then replace /Applications/Screenie.app and launch it"
+depends = ["build"]
+run = """
+set -eu
+if pgrep -xq Screenie; then
+  osascript -e 'quit app id "com.dustinmichels.Screenie"'
+  i=0
+  while pgrep -xq Screenie; do
+    i=$((i + 1))
+    if [ "$i" -ge 50 ]; then echo "Screenie didn't quit; quit it and rerun." >&2; exit 1; fi
+    sleep 0.1
+  done
+fi
+rm -rf /Applications/Screenie.app
+cp -R build/DerivedData/Build/Products/Release/Screenie.app /Applications/
+open /Applications/Screenie.app
+"""
+
+[tasks.release]
+description = "Check git is clean, notarize, tag v<MARKETING_VERSION>, and publish a GitHub release with Screenie.zip"
+run = "scripts/release.sh"
+
+[tasks.docs]
+description = "Preview the docs site"
+dir = "docs"
+run = "bun install && bun run dev"

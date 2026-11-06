@@ -13,6 +13,9 @@ struct PopoverView: View {
     /// Newest screenshot at the time the popover was opened from the dot; cleared on close.
     @State private var highlighted: Screenshot.ID?
 
+    /// Screenshot waiting on the Move to Trash confirmation; non-nil shows the dialog.
+    @State private var pendingTrash: Screenshot?
+
     private static let columns = [GridItem](
         repeating: GridItem(.fixed(Thumbnail.pointSize), spacing: 12), count: 2
     )
@@ -30,7 +33,8 @@ struct PopoverView: View {
                             ForEach(store.screenshots) { shot in
                                 ScreenshotCell(
                                     shot: shot, store: store,
-                                    isHighlighted: shot.id == highlighted
+                                    isHighlighted: shot.id == highlighted,
+                                    requestTrash: { pendingTrash = shot }
                                 )
                             }
                         }
@@ -43,6 +47,20 @@ struct PopoverView: View {
             footer
         }
         .frame(width: 360, height: 480)
+        // Return confirms (default action); Escape cancels.
+        .confirmationDialog(
+            "Move to Trash?",
+            isPresented: Binding(get: { pendingTrash != nil }, set: { if !$0 { pendingTrash = nil } }),
+            presenting: pendingTrash
+        ) { shot in
+            Button("Move to Trash") {
+                do { try store.trash(shot) } catch { NSSound.beep() }
+            }
+            .keyboardShortcut(.defaultAction)
+            Button("Cancel", role: .cancel) {}
+        } message: { shot in
+            Text("\u{201C}\(shot.url.lastPathComponent)\u{201D} will be moved to the Trash.")
+        }
         .onAppear {
             isOpen = true
             store.refreshFolder()
@@ -53,6 +71,7 @@ struct PopoverView: View {
         .onDisappear {
             isOpen = false
             highlighted = nil
+            pendingTrash = nil
         }
         // The window outlives a close, so only screenshots arriving while it's open count as seen.
         .onChange(of: store.screenshots.first?.createdAt) {
@@ -109,11 +128,14 @@ struct PopoverView: View {
 }
 
 /// One grid item: the thumbnail, fitted into a fixed-size cell, with its age underneath.
-/// Actions: double-click opens, hover shows copy/reveal/trash buttons, right-click menu has all four.
+/// Actions: double-click opens; hover shows copy/trash buttons and a centered reveal-in-Finder button;
+/// right-click menu has all four.
 private struct ScreenshotCell: View {
     let shot: Screenshot
     let store: ScreenshotStore
     let isHighlighted: Bool
+    /// Asks `PopoverView` to confirm, then trash, this screenshot.
+    let requestTrash: () -> Void
 
     @State private var isHovering = false
 
@@ -126,6 +148,9 @@ private struct ScreenshotCell: View {
                 .frame(width: Thumbnail.pointSize, height: Thumbnail.pointSize * 0.625)
                 .overlay(alignment: .topTrailing) {
                     if isHovering { hoverButtons.padding(4) }
+                }
+                .overlay {
+                    if isHovering { revealButton }
                 }
             // Refreshes on minute boundaries, and only while the cell is on screen.
             TimelineView(.everyMinute) { context in
@@ -155,18 +180,29 @@ private struct ScreenshotCell: View {
             Button("Show in Finder") { ScreenshotActions.revealInFinder(shot.url) }
             Button("Copy Image") { copy() }
             Divider()
-            Button("Move to Trash") { trash() }
+            Button("Move to Trash…", action: requestTrash)
         }
     }
 
     private var hoverButtons: some View {
         HStack(spacing: 2) {
             iconButton(didCopy ? "checkmark" : "doc.on.doc", help: "Copy Image", action: copy)
-            iconButton("folder", help: "Show in Finder") { ScreenshotActions.revealInFinder(shot.url) }
-            iconButton("trash", help: "Move to Trash", action: trash)
+            iconButton("trash", help: "Move to Trash", action: requestTrash)
         }
         .padding(2)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 6))
+    }
+
+    private var revealButton: some View {
+        Button { ScreenshotActions.revealInFinder(shot.url) } label: {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 16, weight: .semibold))
+                .frame(width: 36, height: 36)
+                .background(.regularMaterial, in: Circle())
+                .contentShape(Circle())
+        }
+        .buttonStyle(.borderless)
+        .help("Show in Finder")
     }
 
     private func iconButton(_ symbol: String, help: String, action: @escaping () -> Void) -> some View {
@@ -187,10 +223,6 @@ private struct ScreenshotCell: View {
             try? await Task.sleep(for: .seconds(1.2))
             didCopy = false
         }
-    }
-
-    private func trash() {
-        do { try store.trash(shot) } catch { NSSound.beep() }
     }
 
     private static let ageFormatter: RelativeDateTimeFormatter = {
