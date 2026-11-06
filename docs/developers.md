@@ -84,7 +84,7 @@ Producing a signed, notarized build needs a paid Apple Developer account signed 
 mise run release
 ```
 
-`scripts/release.sh` archives the app, has Apple notarize it, and publishes a GitHub release `v<version>` with `Screenie.zip` attached. The [README](https://github.com/dustinmichels/screenie#releasing) lists its preconditions and the equivalent manual steps.
+`scripts/release.sh` archives the app, has Apple notarize it, and publishes a GitHub release `v<version>` with `Screenie.dmg` and `Screenie.zip` attached. The [README](https://github.com/dustinmichels/screenie#releasing) lists its preconditions and the equivalent manual steps.
 
 ## Docs
 

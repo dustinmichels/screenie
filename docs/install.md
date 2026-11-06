@@ -4,14 +4,16 @@ Screenie runs on macOS 14 (Sonoma) or later. Building it yourself? See the [deve
 
 ## Download
 
-1. Download **Screenie.zip** from the [latest GitHub release](https://github.com/dustinmichels/screenie/releases/latest) ([direct download](https://github.com/dustinmichels/screenie/releases/latest/download/Screenie.zip)).
-2. Open the zip, then drag **Screenie.app** into your **Applications** folder.
-3. Open Screenie from Applications.
+1. Download **Screenie.dmg** from the [latest GitHub release](https://github.com/dustinmichels/screenie/releases/latest) ([direct download](https://github.com/dustinmichels/screenie/releases/latest/download/Screenie.dmg)).
+2. Open it, then drag **Screenie.app** onto the **Applications** shortcut in the window that appears.
+3. Eject the **Screenie** disk image (in Finder's sidebar, or drag it to the Trash), then open Screenie from Applications.
+
+Prefer a zip? Each release also has **Screenie.zip** ([direct download](https://github.com/dustinmichels/screenie/releases/latest/download/Screenie.zip)) with the same app: open it, then drag **Screenie.app** into Applications.
 
 Screenie is signed and notarized by Apple, so it opens without security warnings. A circle appears in the menu bar. There's no Dock icon or app window; you use Screenie from the menu bar.
 
 ::: tip Keep it in Applications
-Run Screenie from **Applications**, not from Downloads. **Launch at login** remembers where the app was when you turned it on, and macOS remembers folder access for that one copy.
+Run Screenie from **Applications**, not from the disk image or Downloads. **Launch at login** remembers where the app was when you turned it on, and macOS remembers folder access for that one copy.
 :::
 
 ## First launch
@@ -39,8 +41,8 @@ Screenie reads the location macOS saves screenshots to, which you set in ⌘⇧5
 ## Updating
 
 1. Quit Screenie: **Quit Screenie** in the popover footer, or ⌘Q while the popover is open.
-2. Download the new **Screenie.zip** from the [latest release](https://github.com/dustinmichels/screenie/releases/latest).
-3. Drag the new **Screenie.app** into Applications and choose **Replace**.
+2. Download the new **Screenie.dmg** from the [latest release](https://github.com/dustinmichels/screenie/releases/latest) and open it.
+3. Drag the new **Screenie.app** onto the **Applications** shortcut and choose **Replace**, then eject the disk image.
 4. Open Screenie.
 
 Launch at login and folder access carry over to the new version.

@@ -12,17 +12,17 @@ macOS 14 (Sonoma) or later.
 
 ## Install
 
-Install Screenie in `/Applications`, not where you built or unzipped it:
+Install Screenie in `/Applications`, not where you built or downloaded it:
 
 - **Launch at login** saves the app's path when you check the box. If the app runs from `build/` or `Downloads`, the login item breaks once that copy is moved or deleted.
 - macOS remembers folder access for the copy of the app you allowed. Keep one copy in one place and you're asked only once.
 
-### From a release zip
+### From a release
 
-If you have a notarized `Screenie.zip` (attached to each [GitHub release](https://github.com/dustinmichels/screenie/releases); see [Releasing](#releasing)), or a local release build in `build/notarized/`:
+Each [GitHub release](https://github.com/dustinmichels/screenie/releases) has `Screenie.dmg` and `Screenie.zip` attached (see [Releasing](#releasing)); both contain the same notarized app.
 
-1. Unzip it and drag `Screenie.app` to `/Applications`, or run `cp -R build/notarized/Screenie.app /Applications/`.
-2. Open it. It's signed with a Developer ID and notarized, so Gatekeeper lets it run without warnings.
+1. Open `Screenie.dmg` and drag `Screenie.app` onto the `Applications` shortcut in its window, then eject the disk image. From the zip, unzip it and drag `Screenie.app` to `/Applications`. For a local release build: `cp -R build/notarized/Screenie.app /Applications/`.
+2. Open it from `/Applications`. It's signed with a Developer ID and notarized, so Gatekeeper lets it run without warnings.
 
 ### From source
 
@@ -82,7 +82,7 @@ To cut a release, bump `MARKETING_VERSION` in `project.yml`, run `mise run gener
 mise run release
 ```
 
-`scripts/release.sh` refuses to start unless the working tree is clean, you're on `main` level with `origin/main`, `project.yml` and `Screenie.xcodeproj` agree on the version, and neither the tag `v<version>` nor a GitHub release for it exists yet. It then runs steps 1–4 below, polls every 30 s until Apple has notarized the build (gives up after 2 h), checks the result, and only then creates and pushes the annotated tag and publishes a GitHub release with generated notes and `Screenie.zip` attached. If anything fails before that, no tag or release exists, so fix it and rerun.
+`scripts/release.sh` refuses to start unless the working tree is clean, you're on `main` level with `origin/main`, `project.yml` and `Screenie.xcodeproj` agree on the version, and neither the tag `v<version>` nor a GitHub release for it exists yet. It then runs steps 1–4 below, polls every 30 s until Apple has notarized the build (gives up after 2 h), checks the result, and only then creates and pushes the annotated tag and publishes a GitHub release with generated notes and `Screenie.dmg` and `Screenie.zip` attached. If anything fails before that, no tag or release exists, so fix it and rerun.
 
 The same steps by hand:
 
@@ -102,11 +102,16 @@ xcodebuild -exportArchive -archivePath build/Screenie.xcarchive \
 xcodebuild -exportNotarizedApp -archivePath build/Screenie.xcarchive \
   -exportPath build/notarized -allowProvisioningUpdates
 
-# 4. Check and zip
+# 4. Check, zip, and build the disk image
 xcrun stapler validate build/notarized/Screenie.app
 spctl -a -vvv -t exec build/notarized/Screenie.app   # "source=Notarized Developer ID"
 ditto -c -k --keepParent build/notarized/Screenie.app build/Screenie.zip
+mkdir -p build/dmg && ditto build/notarized/Screenie.app build/dmg/Screenie.app
+ln -s /Applications build/dmg/Applications
+hdiutil create -volname Screenie -srcfolder build/dmg -fs HFS+ -format UDZO build/Screenie.dmg
 ```
+
+The disk image itself isn't signed or notarized. The app inside is notarized with its ticket stapled, and that's what Gatekeeper checks when the app is opened, so a downloaded DMG mounts and the app runs without warnings. Signing and notarizing the DMG too would need a local Developer ID certificate (Xcode signs in the cloud) and `notarytool` credentials.
 
 To sign without notarizing, run step 2 with `ExportOptions.plist` as-is (`-exportPath build/export`).
 

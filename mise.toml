@@ -30,7 +30,7 @@ open /Applications/Screenie.app
 """
 
 [tasks.release]
-description = "Check git is clean, notarize, tag v<MARKETING_VERSION>, and publish a GitHub release with Screenie.zip"
+description = "Check git is clean, notarize, tag v<MARKETING_VERSION>, and publish a GitHub release with Screenie.dmg and Screenie.zip"
 run = "scripts/release.sh"
 
 [tasks.docs]

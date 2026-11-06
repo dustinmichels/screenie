@@ -9,6 +9,8 @@ cd "$(dirname "$0")/.."
 ARCHIVE=build/Screenie.xcarchive
 APP=build/notarized/Screenie.app
 ZIP=build/Screenie.zip
+DMG=build/Screenie.dmg
+DMG_ROOT=build/dmg
 NOTARIZE_TIMEOUT=7200 # seconds; a first submission took ~30 min
 
 die() { echo "release: $*" >&2; exit 1; }
@@ -43,7 +45,7 @@ echo "Releasing Screenie $version ($tag) from $(git rev-parse --short HEAD)"
 
 # --- Build and notarize ---
 
-rm -rf "$ARCHIVE" build/notarize build/notarized "$ZIP" build/upload.plist
+rm -rf "$ARCHIVE" build/notarize build/notarized "$ZIP" "$DMG" "$DMG_ROOT" build/upload.plist
 mkdir -p build
 
 step "Archiving"
@@ -66,23 +68,29 @@ until out=$(xcodebuild -exportNotarizedApp -archivePath "$ARCHIVE" \
   fi
   elapsed=$((SECONDS - start))
   [ "$elapsed" -lt "$NOTARIZE_TIMEOUT" ] ||
-    die "still processing after $((elapsed / 60)) min; when Apple finishes, finish by hand (README → Releasing, steps 3-4) and publish with: git tag -a $tag -m 'Screenie $version' && git push origin $tag && gh release create $tag $ZIP --verify-tag --title 'Screenie $version' --generate-notes"
+    die "still processing after $((elapsed / 60)) min; when Apple finishes, finish by hand (README → Releasing, steps 3-4) and publish with: git tag -a $tag -m 'Screenie $version' && git push origin $tag && gh release create $tag $DMG $ZIP --verify-tag --title 'Screenie $version' --generate-notes"
   echo "  still processing ($((elapsed / 60)) min elapsed)"
   sleep 30
 done
 
-step "Verifying and zipping"
+step "Verifying and packaging"
 xcrun stapler validate "$APP"
 spctl -a -vv -t exec "$APP" 2>&1 | grep -q 'source=Notarized Developer ID' ||
   die "spctl does not accept $APP as notarized"
 ditto -c -k --keepParent "$APP" "$ZIP"
+# The disk image itself is unsigned; Gatekeeper checks the stapled app inside when it's opened.
+mkdir -p "$DMG_ROOT"
+ditto "$APP" "$DMG_ROOT/Screenie.app"
+ln -s /Applications "$DMG_ROOT/Applications"
+hdiutil create -quiet -volname Screenie -srcfolder "$DMG_ROOT" -fs HFS+ -format UDZO "$DMG"
+hdiutil verify -quiet "$DMG"
 
 # --- Tag and publish ---
 
 step "Tagging $tag and publishing the GitHub release"
 git tag -a "$tag" -m "Screenie $version"
 git push origin "$tag"
-gh release create "$tag" "$ZIP" --verify-tag --title "Screenie $version" --generate-notes
+gh release create "$tag" "$DMG" "$ZIP" --verify-tag --title "Screenie $version" --generate-notes
 
 echo
 echo "Released $(gh release view "$tag" --json url --jq .url)"
