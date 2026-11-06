@@ -30,5 +30,9 @@ export default defineConfig({
     ],
     socialLinks: [{ icon: 'github', link: 'https://github.com/dustinmichels/screenie' }],
     outline: 'deep',
+    footer: {
+      message:
+        'Free and <a href="https://github.com/dustinmichels/screenie">open source</a>. Built by <a href="https://dustinmichels.com">Dustin M</a>.',
+    },
   },
 })
