@@ -22,7 +22,7 @@ The popover shows a two-column grid of up to 50 screenshots, newest first. Each 
 | Open in Preview (or your default image app) | Double-click the thumbnail |
 | Copy the image | Hover → copy button, or right-click → **Copy Image** |
 | Show it in Finder | Hover → magnifying glass in the middle, or right-click → **Show in Finder** |
-| Move it to the Trash | Hover → trash button, or right-click → **Move to Trash** |
+| Move it to the Trash | Hover → trash button, or right-click → **Move to Trash…**, then confirm with Return (Escape cancels) |
 | Put it in another app | Drag the thumbnail into a Finder window, email, chat, etc. |
 
 The footer has the **Launch at login** checkbox and **Quit Screenie** (⌘Q).
