@@ -175,6 +175,7 @@ private struct ScreenshotCell: View {
         .onTapGesture(count: 2) { ScreenshotActions.open(shot.url) }
         // Drag out as a file; the provider reads the file only when a drop target asks.
         .onDrag { NSItemProvider(contentsOf: shot.url) ?? NSItemProvider() }
+        .grabPointer()
         .contextMenu {
             Button("Open") { ScreenshotActions.open(shot.url) }
             Button("Show in Finder") { ScreenshotActions.revealInFinder(shot.url) }
@@ -187,7 +188,7 @@ private struct ScreenshotCell: View {
     private var hoverButtons: some View {
         HStack(spacing: 2) {
             iconButton(didCopy ? "checkmark" : "doc.on.doc", help: "Copy Image", action: copy)
-            iconButton("trash", help: "Move to Trash", action: requestTrash)
+            iconButton("trash", help: "Move to Trash", tint: .red, action: requestTrash)
         }
         .padding(2)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 6))
@@ -198,21 +199,21 @@ private struct ScreenshotCell: View {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 16, weight: .semibold))
                 .frame(width: 36, height: 36)
-                .background(.regularMaterial, in: Circle())
-                .contentShape(Circle())
         }
-        .buttonStyle(.borderless)
+        .buttonStyle(HoverFillButtonStyle(shape: Circle(), rest: AnyShapeStyle(.regularMaterial)))
         .help("Show in Finder")
     }
 
-    private func iconButton(_ symbol: String, help: String, action: @escaping () -> Void) -> some View {
+    private func iconButton(
+        _ symbol: String, help: String, tint: Color = .accentColor, action: @escaping () -> Void
+    ) -> some View {
         Button(action: action) {
             Image(systemName: symbol)
                 .font(.system(size: 11, weight: .medium))
                 .frame(width: 20, height: 18)
-                .contentShape(Rectangle())
         }
-        .buttonStyle(.borderless)
+        // Inner radius of the 6 pt container minus its 2 pt padding.
+        .buttonStyle(HoverFillButtonStyle(shape: RoundedRectangle(cornerRadius: 4), tint: tint))
         .help(help)
     }
 
@@ -235,5 +236,77 @@ private struct ScreenshotCell: View {
     /// "2 min. ago", "yesterday". Clamped so clock skew never yields "in 3 sec.".
     static func age(of date: Date, now: Date) -> String {
         ageFormatter.localizedString(for: min(date, now), relativeTo: now)
+    }
+}
+
+/// Icon button that fills with `tint` and turns its icon white while hovered, so it reads as
+/// clickable over the thumbnail. Shows the arrow pointer inside a `grabPointer()` cell.
+private struct HoverFillButtonStyle<S: Shape>: ButtonStyle {
+    let shape: S
+    var tint: Color = .accentColor
+    /// Background while not hovered.
+    var rest = AnyShapeStyle(Color.clear)
+
+    func makeBody(configuration: Configuration) -> some View {
+        Fill(configuration: configuration, style: self)
+    }
+
+    private struct Fill: View {
+        let configuration: ButtonStyleConfiguration
+        let style: HoverFillButtonStyle
+        @State private var isHovering = false
+
+        var body: some View {
+            configuration.label
+                .foregroundStyle(isHovering ? Color.white : Color.primary)
+                .background(isHovering ? AnyShapeStyle(style.tint) : style.rest, in: style.shape)
+                .opacity(configuration.isPressed ? 0.7 : 1)
+                .contentShape(style.shape)
+                .onHover { isHovering = $0 }
+                .animation(.easeOut(duration: 0.12), value: isHovering)
+                .arrowPointer()
+        }
+    }
+}
+
+/// Open hand while hovering and closed hand while the mouse is down, signalling the view can be
+/// dragged. Once a drag session starts, AppKit shows its own drag cursor.
+private struct GrabPointer: ViewModifier {
+    @GestureState private var isPressed = false
+
+    func body(content: Content) -> some View {
+        Group {
+            if #available(macOS 15, *) {
+                content.pointerStyle(isPressed ? .grabActive : .grabIdle)
+            } else {
+                // macOS 14 has no `pointerStyle`; set the cursor directly, buttons included.
+                content
+                    .onContinuousHover { phase in
+                        switch phase {
+                        case .active: (isPressed ? NSCursor.closedHand : .openHand).set()
+                        case .ended: NSCursor.arrow.set()
+                        }
+                    }
+                    .onChange(of: isPressed) { (isPressed ? NSCursor.closedHand : .openHand).set() }
+            }
+        }
+        // Simultaneous, so `onDrag`, double-click, and buttons still work. The drag session
+        // cancels this gesture when it starts, which resets `isPressed`.
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0).updating($isPressed) { _, pressed, _ in pressed = true }
+        )
+    }
+}
+
+private extension View {
+    func grabPointer() -> some View { modifier(GrabPointer()) }
+
+    /// Restores the standard arrow inside a `grabPointer()` view (macOS 15+).
+    @ViewBuilder func arrowPointer() -> some View {
+        if #available(macOS 15, *) {
+            pointerStyle(.default)
+        } else {
+            self
+        }
     }
 }
