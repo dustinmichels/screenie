@@ -13,6 +13,11 @@ enum ScreenshotActions {
         NSWorkspace.shared.open(url)
     }
 
+    /// Shows the system share picker (AirDrop, Messages, Mail, …) for the file, below `view`.
+    static func share(_ url: URL, from view: NSView) {
+        NSSharingServicePicker(items: [url]).show(relativeTo: view.bounds, of: view, preferredEdge: .minY)
+    }
+
     /// Puts the image on the general pasteboard so it pastes as an image (not a file).
     ///
     /// Writes the file's original bytes under its own type (`public.png` for default

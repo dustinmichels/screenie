@@ -132,8 +132,8 @@ struct PopoverView: View {
 }
 
 /// One grid item: the thumbnail, fitted into a fixed-size cell, with its age underneath.
-/// Actions: double-click opens; hover shows copy/trash buttons and a centered reveal-in-Finder button;
-/// right-click menu has all four plus Share.
+/// Actions: double-click opens; hover shows copy/share/trash buttons and a centered reveal-in-Finder
+/// button; right-click menu has all of them plus Open.
 private struct ScreenshotCell: View {
     let shot: Screenshot
     let store: ScreenshotStore
@@ -146,10 +146,15 @@ private struct ScreenshotCell: View {
     /// Briefly true after a successful copy, so the copy button can confirm it.
     @State private var didCopy = false
 
+    /// AppKit views the share picker anchors to: the thumbnail (context menu) and the hover button.
+    @State private var thumbnailAnchor = AnchorBox()
+    @State private var shareButtonAnchor = AnchorBox()
+
     var body: some View {
         VStack(spacing: 4) {
             ThumbnailView(url: shot.url, cache: store.thumbnails)
                 .frame(width: Thumbnail.pointSize, height: Thumbnail.pointSize * 0.625)
+                .background(AnchorView(box: thumbnailAnchor))
                 .overlay(alignment: .topTrailing) {
                     if isHovering { hoverButtons.padding(4) }
                 }
@@ -184,8 +189,7 @@ private struct ScreenshotCell: View {
             Button("Open") { ScreenshotActions.open(shot.url) }
             Button("Show in Finder") { ScreenshotActions.revealInFinder(shot.url) }
             Button("Copy Image") { copy() }
-            // "Share…" opens the system share picker (AirDrop, Messages, Mail, …) for the file.
-            ShareLink(item: shot.url)
+            Button("Share…") { share(from: thumbnailAnchor) }
             Divider()
             Button("Move to Trash…", action: requestTrash)
         }
@@ -194,6 +198,8 @@ private struct ScreenshotCell: View {
     private var hoverButtons: some View {
         HStack(spacing: 2) {
             iconButton(didCopy ? "checkmark" : "doc.on.doc", help: "Copy Image", action: copy)
+            iconButton("square.and.arrow.up", help: "Share") { share(from: shareButtonAnchor) }
+                .background(AnchorView(box: shareButtonAnchor))
             iconButton("trash", help: "Move to Trash", tint: .red, action: requestTrash)
         }
         .padding(2)
@@ -232,6 +238,14 @@ private struct ScreenshotCell: View {
         }
     }
 
+    /// Deferred one runloop turn so a context menu has finished closing before the picker opens.
+    private func share(from anchor: AnchorBox) {
+        DispatchQueue.main.async {
+            guard let view = anchor.view, view.window != nil else { return NSSound.beep() }
+            ScreenshotActions.share(shot.url, from: view)
+        }
+    }
+
     private static let ageFormatter: RelativeDateTimeFormatter = {
         let formatter = RelativeDateTimeFormatter()
         formatter.dateTimeStyle = .named
@@ -242,6 +256,27 @@ private struct ScreenshotCell: View {
     /// "2 min. ago", "yesterday". Clamped so clock skew never yields "in 3 sec.".
     static func age(of date: Date, now: Date) -> String {
         ageFormatter.localizedString(for: min(date, now), relativeTo: now)
+    }
+}
+
+/// Holds the `NSView` behind an `AnchorView`, for presenting AppKit UI relative to a SwiftUI view.
+/// SwiftUI's `ShareLink` can't be used: in a context menu it has nothing to anchor to and shows nothing.
+private final class AnchorBox {
+    weak var view: NSView?
+}
+
+/// Invisible view that publishes its `NSView` to `box`.
+private struct AnchorView: NSViewRepresentable {
+    let box: AnchorBox
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        box.view = view
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        box.view = nsView
     }
 }
 

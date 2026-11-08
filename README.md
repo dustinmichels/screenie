@@ -64,8 +64,8 @@ Launch at login keeps working, because the app is back at the same path.
 
 - **Circle** in the menu bar: no new screenshots. **Circle with a dot**: there are screenshots you haven't looked at yet. Opening the popover clears the dot and highlights the newest screenshot.
 - **Double-click** a thumbnail to open it in its default app (usually Preview).
-- **Hover** over a thumbnail for buttons to copy the image or move it to the Trash, plus a magnifying glass in the middle to show it in Finder.
-- **Right-click** a thumbnail for the same actions plus Open and Share (AirDrop, Messages, Mail, …).
+- **Hover** over a thumbnail for buttons to copy, share, or move the image to the Trash, plus a magnifying glass in the middle to show it in Finder.
+- **Right-click** a thumbnail for the same actions plus Open.
 - **Drag** a thumbnail into another app or a Finder window to use the file.
 - **Launch at login**: checkbox in the popover footer. Turn it on after moving the app to `/Applications`.
 - **Check for Updates…**: footer button. Screenie also checks GitHub at launch and when you open the popover, at most once a day, and offers to download a newer release.

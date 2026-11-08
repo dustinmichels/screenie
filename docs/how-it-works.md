@@ -23,7 +23,7 @@ The popover shows a two-column grid of up to 50 screenshots, newest first. Each 
 | Copy the image | Hover → copy button, or right-click → **Copy Image** |
 | Show it in Finder | Hover → magnifying glass in the middle, or right-click → **Show in Finder** |
 | Move it to the Trash | Hover → trash button, or right-click → **Move to Trash…**, then confirm with Return (Escape cancels) |
-| Share it (AirDrop, Messages, Mail, …) | Right-click → **Share…** |
+| Share it (AirDrop, Messages, Mail, …) | Hover → share button, or right-click → **Share…** |
 | Put it in another app | Drag the thumbnail into a Finder window, email, chat, etc. |
 
 The footer has the **Launch at login** checkbox, **Check for Updates…**, and **Quit Screenie** (⌘Q).
