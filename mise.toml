@@ -11,7 +11,7 @@ description = "Build the Release app into build/DerivedData"
 run = "xcodebuild -project Screenie.xcodeproj -scheme Screenie -configuration Release -destination 'generic/platform=macOS' -derivedDataPath build/DerivedData build -quiet"
 
 [tasks.install]
-description = "Build, then replace /Applications/Screenie.app and launch it"
+description = "Build, replace /Applications/Screenie.app, launch it, then clean build/"
 depends = ["build"]
 run = """
 set -eu
@@ -27,7 +27,12 @@ fi
 rm -rf /Applications/Screenie.app
 cp -R build/DerivedData/Build/Products/Release/Screenie.app /Applications/
 open /Applications/Screenie.app
+mise run cleanup
 """
+
+[tasks.cleanup]
+description = "Delete build/ (DerivedData, archives, release artifacts)"
+run = "rm -rf build"
 
 [tasks.release]
 description = "Check git is clean, notarize, tag v<MARKETING_VERSION>, and publish a GitHub release with Screenie.dmg and Screenie.zip"

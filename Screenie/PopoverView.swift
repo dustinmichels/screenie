@@ -3,6 +3,7 @@ import SwiftUI
 /// Popover content: a grid of the newest screenshots (plan section 7).
 struct PopoverView: View {
     let store: ScreenshotStore
+    let updater: UpdateChecker
 
     /// Whether the popover window is showing. `MenuBarExtra` fires `onAppear`/`onDisappear`
     /// on every open/close. The grid only exists while open: the window outlives a close and
@@ -67,6 +68,7 @@ struct PopoverView: View {
             // Opened from the dot: highlight the newest screenshot (the grid starts at the top).
             if store.hasUnseen, let newest = store.screenshots.first { highlighted = newest.id }
             store.markSeen()
+            Task { await updater.checkIfDue() }
         }
         .onDisappear {
             isOpen = false
@@ -84,6 +86,8 @@ struct PopoverView: View {
         HStack {
             LaunchAtLoginToggle()
             Spacer()
+            Button("Check for Updates\u{2026}") { Task { await updater.checkNow() } }
+                .disabled(updater.isBusy)
             Button("Quit Screenie") { NSApp.terminate(nil) }
                 .keyboardShortcut("q")
         }
@@ -129,7 +133,7 @@ struct PopoverView: View {
 
 /// One grid item: the thumbnail, fitted into a fixed-size cell, with its age underneath.
 /// Actions: double-click opens; hover shows copy/trash buttons and a centered reveal-in-Finder button;
-/// right-click menu has all four.
+/// right-click menu has all four plus Share.
 private struct ScreenshotCell: View {
     let shot: Screenshot
     let store: ScreenshotStore
@@ -180,6 +184,8 @@ private struct ScreenshotCell: View {
             Button("Open") { ScreenshotActions.open(shot.url) }
             Button("Show in Finder") { ScreenshotActions.revealInFinder(shot.url) }
             Button("Copy Image") { copy() }
+            // "Share…" opens the system share picker (AirDrop, Messages, Mail, …) for the file.
+            ShareLink(item: shot.url)
             Divider()
             Button("Move to Trash…", action: requestTrash)
         }

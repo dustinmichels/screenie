@@ -40,6 +40,16 @@ Screenie reads the location macOS saves screenshots to, which you set in ⌘⇧5
 
 ## Updating
 
+Screenie checks GitHub for a new release when it launches and when you open the popover, at most once a day. To check right away, click **Check for Updates…** in the popover footer.
+
+When a new version is out, Screenie asks whether to update:
+
+- **Download** downloads the new **Screenie.dmg**, opens it, and quits Screenie. Drag **Screenie.app** onto the **Applications** shortcut, choose **Replace**, eject the disk image, and open Screenie again.
+- **Later** dismisses the prompt. Screenie asks again the next day.
+- **Release Notes** opens the release on GitHub.
+
+To update by hand instead:
+
 1. Quit Screenie: **Quit Screenie** in the popover footer, or ⌘Q while the popover is open.
 2. Download the new **Screenie.dmg** from the [latest release](https://github.com/dustinmichels/screenie/releases/latest) and open it.
 3. Drag the new **Screenie.app** onto the **Applications** shortcut and choose **Replace**, then eject the disk image.

@@ -3,10 +3,11 @@ import SwiftUI
 @main
 struct ScreenieApp: App {
     @State private var store = ScreenshotStore()
+    @State private var updater = UpdateChecker()
 
     var body: some Scene {
         MenuBarExtra {
-            PopoverView(store: store)
+            PopoverView(store: store, updater: updater)
         } label: {
             MenuBarIcon(hasUnseen: store.hasUnseen)
         }

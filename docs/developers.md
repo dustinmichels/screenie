@@ -28,12 +28,13 @@ Install the app in `/Applications`, not where you built it. **Launch at login** 
 mise run install
 ```
 
-This builds the Release app, quits Screenie if it's running, deletes `/Applications/Screenie.app`, copies the new build there, and launches it. It replaces whatever copy is installed, including a notarized release build.
+This builds the Release app, quits Screenie if it's running, deletes `/Applications/Screenie.app`, copies the new build there, launches it, and then deletes `build/`. It replaces whatever copy is installed, including a notarized release build.
 
 | Task | Does |
 | --- | --- |
 | `mise run build` | Builds the Release app into `build/DerivedData` |
-| `mise run install` | `build`, then replaces `/Applications/Screenie.app` and launches it |
+| `mise run install` | `build`, then replaces `/Applications/Screenie.app`, launches it, and runs `cleanup` |
+| `mise run cleanup` | Deletes `build/` (DerivedData, archives, release artifacts) |
 | `mise run generate` | Regenerates `Screenie.xcodeproj` from `project.yml` |
 | `mise run release` | Notarizes, tags, and publishes a GitHub release (see [Releasing](#releasing)) |
 | `mise run docs` | Previews this docs site |
@@ -85,6 +86,8 @@ mise run release
 ```
 
 `scripts/release.sh` archives the app, has Apple notarize it, and publishes a GitHub release `v<version>` with `Screenie.dmg` and `Screenie.zip` attached. The [README](https://github.com/dustinmichels/screenie#releasing) lists its preconditions and the equivalent manual steps.
+
+Installed copies find the update through this release: the in-app update check reads the latest release's `v<version>` tag and downloads its `Screenie.dmg`, so keep that tag format and asset name. Drafts and prereleases aren't offered.
 
 ## Docs
 

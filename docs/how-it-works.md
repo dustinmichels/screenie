@@ -23,9 +23,10 @@ The popover shows a two-column grid of up to 50 screenshots, newest first. Each 
 | Copy the image | Hover → copy button, or right-click → **Copy Image** |
 | Show it in Finder | Hover → magnifying glass in the middle, or right-click → **Show in Finder** |
 | Move it to the Trash | Hover → trash button, or right-click → **Move to Trash…**, then confirm with Return (Escape cancels) |
+| Share it (AirDrop, Messages, Mail, …) | Right-click → **Share…** |
 | Put it in another app | Drag the thumbnail into a Finder window, email, chat, etc. |
 
-The footer has the **Launch at login** checkbox and **Quit Screenie** (⌘Q).
+The footer has the **Launch at login** checkbox, **Check for Updates…**, and **Quit Screenie** (⌘Q).
 
 If the folder has no screenshots yet, the popover shows the folder it's watching, so you can tell whether ⌘⇧5 → **Options** → **Save to** points where you expect.
 
@@ -37,7 +38,7 @@ If the folder has no screenshots yet, the popover shows the folder it's watching
 
 ## Under the hood
 
-Screenie is a native Swift/SwiftUI app with no third-party dependencies. It's built to cost nothing while you aren't using it: no timers, no polling, and no full-size images kept in memory.
+Screenie is a native Swift/SwiftUI app with no third-party dependencies. It's built to cost nothing while you aren't using it: no timers, no polling, and no full-size images kept in memory. The only network request is the daily update check.
 
 ### Finding the screenshot folder
 
@@ -67,6 +68,12 @@ They're decoded one at a time on a background queue and kept in an `NSCache` cap
 ### Copying
 
 **Copy Image** puts the file's original bytes on the clipboard under their own type (`public.png` for a standard screenshot) instead of going through `NSImage`. With `NSImage`, a large image is turned into an uncompressed TIFF that Screenie would have to keep in memory until something else replaces the clipboard. With the original bytes, that cost drops from hundreds of megabytes to a few. Apps that want TIFF still get it, converted on their side.
+
+### Update checks
+
+Screenie asks GitHub's API for the latest release (`api.github.com/repos/dustinmichels/screenie/releases/latest`, which skips drafts and prereleases) and compares its tag, minus the leading `v`, with the app's version number by number, so 0.10.0 counts as newer than 0.9.1. It checks at launch and when the popover opens, but only if the last successful check was more than a day ago, so it doesn't need a timer. A failed check is retried the next time the popover opens. Automatic checks stay silent unless there's a newer version. **Check for Updates…** always checks and also tells you when you're up to date or GitHub couldn't be reached.
+
+**Download** fetches the release's `Screenie.dmg` into a temporary folder, opens it, and quits Screenie, because Finder can't replace an app that's running. If the download fails, Screenie offers to open the release page. Screenie never replaces itself; you drag the new app into Applications.
 
 ### Permissions
 
