@@ -35,7 +35,7 @@ description = "Delete build/ (DerivedData, archives, release artifacts)"
 run = "rm -rf build"
 
 [tasks.release]
-description = "Check git is clean, notarize, tag v<MARKETING_VERSION>, and publish a GitHub release with Screenie.dmg and Screenie.zip"
+description = "Bump the version (patch by default; or minor, major, X.Y.Z), notarize, tag, and publish a GitHub release with Screenie.dmg and Screenie.zip"
 run = "scripts/release.sh"
 
 [tasks.docs]

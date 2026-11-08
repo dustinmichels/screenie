@@ -77,13 +77,16 @@ Screenie watches the folder macOS saves screenshots to (⌘⇧5 → **Options** 
 
 Producing a signed, notarized build needs a paid Apple Developer account signed in to Xcode (Settings → Accounts). `ExportOptions.plist` exports for Developer ID distribution with automatic signing for team `LLM5F36KYW`; change `teamID` for another account. Publishing needs the [GitHub CLI](https://cli.github.com) logged in (`gh auth login`).
 
-To cut a release, bump `MARKETING_VERSION` in `project.yml`, run `mise run generate`, commit, and push to `main`. Then:
+To cut a release from a clean `main` that's level with `origin/main`:
 
 ```sh
-mise run release
+mise run release          # next patch version, e.g. 0.1.0 -> 0.1.1
+mise run release minor    # or major, or an exact version like 1.0.0
 ```
 
-`scripts/release.sh` refuses to start unless the working tree is clean, you're on `main` level with `origin/main`, `project.yml` and `Screenie.xcodeproj` agree on the version, and neither the tag `v<version>` nor a GitHub release for it exists yet. It then runs steps 1–4 below, polls every 30 s until Apple has notarized the build (gives up after 2 h), checks the result, and only then creates and pushes the annotated tag and publishes a GitHub release with generated notes and `Screenie.dmg` and `Screenie.zip` attached. If anything fails before that, no tag or release exists, so fix it and rerun.
+If `v<MARKETING_VERSION>` is already tagged (or you pass `patch`, `minor`, `major`, or `X.Y.Z`), `scripts/release.sh` first bumps `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` in `project.yml`, regenerates `Screenie.xcodeproj`, and commits and pushes `chore(release): v<version>` to `main`. If the version isn't tagged yet (you bumped it by hand, or a previous release failed after its bump), plain `mise run release` releases it as-is.
+
+The script refuses to start unless the working tree is clean, you're on `main` level with `origin/main`, `gh` is logged in, `project.yml` and `Screenie.xcodeproj` agree on the version, and neither the tag `v<version>` nor a GitHub release for it exists yet. It then runs steps 1–4 below, polls every 30 s until Apple has notarized the build (gives up after 2 h), checks the result, and only then creates and pushes the annotated tag and publishes a GitHub release with generated notes and `Screenie.dmg` and `Screenie.zip` attached. If anything fails before that, no tag or release exists, so fix it and rerun `mise run release` without an argument to release the already-bumped version.
 
 The same steps by hand:
 
