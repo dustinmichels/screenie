@@ -216,8 +216,14 @@ private struct ScreenshotCell: View {
                     .font(.caption.weight(.medium))
                     .foregroundStyle(tint)
                     // Negative padding grows the pill past the text without changing the row height.
+                    // Opaque base: the popover is translucent glass on macOS 26, and with a bright or
+                    // busy desktop behind it (or Liquid Glass set to Clear) a bare tint wash leaves
+                    // the colored text unreadable.
                     .background {
-                        Capsule().fill(tint.opacity(0.12)).padding(.horizontal, -6).padding(.vertical, -1)
+                        Capsule()
+                            .fill(Color(nsColor: .windowBackgroundColor))
+                            .overlay { Capsule().fill(tint.opacity(0.12)) }
+                            .padding(.horizontal, -6).padding(.vertical, -1)
                     }
                     .transition(.opacity.combined(with: .scale(scale: 0.85)))
             } else {
