@@ -15,7 +15,7 @@ Screenie remembers when you last looked, so a screenshot taken while Screenie wa
 
 ### The popover
 
-The popover shows a two-column grid of up to 50 screenshots, newest first. Each one shows how long ago it was taken ("2 min. ago", "yesterday"). Hover over a thumbnail to see its file name.
+The popover shows a two-column grid of up to 50 screenshots, newest first. Each one shows how long ago it was taken ("2 min. ago", "yesterday"). Hover over a thumbnail to see its file name; point at one of its buttons and the "ago" line names what the button does.
 
 | To… | Do this |
 | --- | --- |
@@ -23,7 +23,7 @@ The popover shows a two-column grid of up to 50 screenshots, newest first. Each 
 | Copy the image | Hover → copy button, or right-click → **Copy Image** |
 | Show it in Finder | Hover → magnifying glass in the middle, or right-click → **Show in Finder** |
 | Move it to the Trash | Hover → trash button, or right-click → **Move to Trash…**, then confirm with Return (Escape cancels) |
-| Share it (AirDrop, Messages, Mail, …) | Hover → share button, or right-click → **Share…** |
+| Share it (AirDrop, Messages, Mail, …) | Hover → share button |
 | Put it in another app | Drag the thumbnail into a Finder window, email, chat, etc. |
 
 The footer has the **Launch at login** checkbox, **Check for Updates…**, and **Quit Screenie** (⌘Q).

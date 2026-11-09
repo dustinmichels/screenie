@@ -32,12 +32,15 @@ This builds the Release app, quits Screenie if it's running, deletes `/Applicati
 
 | Task | Does |
 | --- | --- |
+| `mise run dev` | Builds the Debug app and runs it from `build/` in the terminal; Ctrl-C quits it |
 | `mise run build` | Builds the Release app into `build/DerivedData` |
 | `mise run install` | `build`, then replaces `/Applications/Screenie.app`, launches it, and runs `cleanup` |
 | `mise run cleanup` | Deletes `build/` (DerivedData, archives, release artifacts) |
 | `mise run generate` | Regenerates `Screenie.xcodeproj` from `project.yml` |
 | `mise run release` | Notarizes, tags, and publishes a GitHub release (see [Releasing](#releasing)) |
 | `mise run docs` | Previews this docs site |
+
+`mise run dev` is for trying out changes without touching `/Applications`. It quits any running Screenie first, since both copies share a bundle ID. The app stays attached to the terminal, so crashes and anything it prints show up there. Don't turn on **Launch at login** from a dev build: the login item would point into `build/`.
 
 ### Without mise
 

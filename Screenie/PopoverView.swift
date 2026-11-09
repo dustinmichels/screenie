@@ -133,7 +133,8 @@ struct PopoverView: View {
 
 /// One grid item: the thumbnail, fitted into a fixed-size cell, with its age underneath.
 /// Actions: double-click opens; hover shows copy/share/trash buttons and a centered reveal-in-Finder
-/// button; right-click menu has all of them plus Open.
+/// button, and while the pointer is on one of them the age line names its action; right-click menu
+/// has all of them except Share, plus Open.
 private struct ScreenshotCell: View {
     let shot: Screenshot
     let store: ScreenshotStore
@@ -143,31 +144,51 @@ private struct ScreenshotCell: View {
 
     @State private var isHovering = false
 
+    /// True while the share picker opened from the hover button is up. Keeps the hover buttons
+    /// alive after the pointer moves onto the menu: removing its anchor view closes the menu.
+    @State private var isSharing = false
+
     /// Briefly true after a successful copy, so the copy button can confirm it.
     @State private var didCopy = false
 
-    /// AppKit views the share picker anchors to: the thumbnail (context menu) and the hover button.
-    @State private var thumbnailAnchor = AnchorBox()
+    /// Hover button under the pointer; its title replaces the age line. Shown in-view rather than
+    /// with `.help`: AppKit tooltips only appear while the app is active, and an `LSUIElement` app
+    /// usually isn't while the popover is open.
+    @State private var hoveredAction: HoverAction?
+
+    /// AppKit view the share picker anchors to.
     @State private var shareButtonAnchor = AnchorBox()
 
     var body: some View {
         VStack(spacing: 4) {
             ThumbnailView(url: shot.url, cache: store.thumbnails)
                 .frame(width: Thumbnail.pointSize, height: Thumbnail.pointSize * 0.625)
-                .background(AnchorView(box: thumbnailAnchor))
                 .overlay(alignment: .topTrailing) {
-                    if isHovering { hoverButtons.padding(4) }
+                    if isHovering || isSharing { hoverButtons.padding(4) }
                 }
                 .overlay {
-                    if isHovering { revealButton }
+                    if isHovering || isSharing { revealButton }
                 }
-            // Refreshes on minute boundaries, and only while the cell is on screen.
-            TimelineView(.everyMinute) { context in
-                Text(Self.age(of: shot.createdAt, now: context.date))
-                    .font(.caption)
-                    .foregroundStyle(isHighlighted ? Color.accentColor : .secondary)
+            if let hoveredAction {
+                // Tinted like the hovered button's fill, so the two read as a pair.
+                Text(hoveredAction.title(didCopy: didCopy))
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(hoveredAction.tint)
+                    // Negative padding grows the pill past the text without changing the row height.
+                    .background {
+                        Capsule().fill(hoveredAction.tint.opacity(0.12)).padding(.horizontal, -6).padding(.vertical, -1)
+                    }
+                    .transition(.opacity.combined(with: .scale(scale: 0.85)))
+            } else {
+                // Refreshes on minute boundaries, and only while the cell is on screen.
+                TimelineView(.everyMinute) { context in
+                    Text(Self.age(of: shot.createdAt, now: context.date))
+                        .font(.caption)
+                        .foregroundStyle(isHighlighted ? Color.accentColor : .secondary)
+                }
             }
         }
+        .animation(.easeOut(duration: 0.12), value: hoveredAction)
         // Drawn in the grid's 12 pt gutter so the cell layout doesn't shift.
         .background {
             if isHighlighted {
@@ -180,7 +201,8 @@ private struct ScreenshotCell: View {
         .help(shot.url.lastPathComponent)
         // Hit-test the whole cell, not just the drawn thumbnail and text.
         .contentShape(Rectangle())
-        .onHover { isHovering = $0 }
+        // Hover buttons are removed with the cell's hover, which may skip their own exit callback.
+        .onHover { isHovering = $0; if !$0 { hoveredAction = nil } }
         .onTapGesture(count: 2) { ScreenshotActions.open(shot.url) }
         // Drag out as a file; the provider reads the file only when a drop target asks.
         .onDrag { NSItemProvider(contentsOf: shot.url) ?? NSItemProvider() }
@@ -189,7 +211,6 @@ private struct ScreenshotCell: View {
             Button("Open") { ScreenshotActions.open(shot.url) }
             Button("Show in Finder") { ScreenshotActions.revealInFinder(shot.url) }
             Button("Copy Image") { copy() }
-            Button("Share…") { share(from: thumbnailAnchor) }
             Divider()
             Button("Move to Trash…", action: requestTrash)
         }
@@ -197,10 +218,10 @@ private struct ScreenshotCell: View {
 
     private var hoverButtons: some View {
         HStack(spacing: 2) {
-            iconButton(didCopy ? "checkmark" : "doc.on.doc", help: "Copy Image", action: copy)
-            iconButton("square.and.arrow.up", help: "Share") { share(from: shareButtonAnchor) }
-                .background(AnchorView(box: shareButtonAnchor))
-            iconButton("trash", help: "Move to Trash", tint: .red, action: requestTrash)
+            iconButton(didCopy ? "checkmark" : "doc.on.doc", action: .copy, perform: copy)
+            iconButton("square.and.arrow.up", action: .share, perform: share)
+            .background(AnchorView(box: shareButtonAnchor))
+            iconButton("trash", action: .trash, perform: requestTrash)
         }
         .padding(2)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 6))
@@ -212,21 +233,21 @@ private struct ScreenshotCell: View {
                 .font(.system(size: 16, weight: .semibold))
                 .frame(width: 36, height: 36)
         }
-        .buttonStyle(HoverFillButtonStyle(shape: Circle(), rest: AnyShapeStyle(.regularMaterial)))
-        .help("Show in Finder")
+        .buttonStyle(
+            HoverFillButtonStyle(shape: Circle(), tint: HoverAction.reveal.tint, rest: AnyShapeStyle(.regularMaterial))
+        )
+        .describedOnHover(as: .reveal, in: $hoveredAction)
     }
 
-    private func iconButton(
-        _ symbol: String, help: String, tint: Color = .accentColor, action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
+    private func iconButton(_ symbol: String, action: HoverAction, perform: @escaping () -> Void) -> some View {
+        Button(action: perform) {
             Image(systemName: symbol)
                 .font(.system(size: 11, weight: .medium))
                 .frame(width: 20, height: 18)
         }
         // Inner radius of the 6 pt container minus its 2 pt padding.
-        .buttonStyle(HoverFillButtonStyle(shape: RoundedRectangle(cornerRadius: 4), tint: tint))
-        .help(help)
+        .buttonStyle(HoverFillButtonStyle(shape: RoundedRectangle(cornerRadius: 4), tint: action.tint))
+        .describedOnHover(as: action, in: $hoveredAction)
     }
 
     private func copy() {
@@ -238,12 +259,10 @@ private struct ScreenshotCell: View {
         }
     }
 
-    /// Deferred one runloop turn so a context menu has finished closing before the picker opens.
-    private func share(from anchor: AnchorBox) {
-        DispatchQueue.main.async {
-            guard let view = anchor.view, view.window != nil else { return NSSound.beep() }
-            ScreenshotActions.share(shot.url, from: view)
-        }
+    private func share() {
+        guard let view = shareButtonAnchor.view, view.window != nil else { return NSSound.beep() }
+        isSharing = true
+        ScreenshotActions.share(shot.url, from: view) { isSharing = false }
     }
 
     private static let ageFormatter: RelativeDateTimeFormatter = {
@@ -259,8 +278,38 @@ private struct ScreenshotCell: View {
     }
 }
 
+/// The cell's hover buttons, for naming the one under the pointer.
+private enum HoverAction {
+    case reveal, copy, share, trash
+
+    func title(didCopy: Bool) -> String {
+        switch self {
+        case .reveal: "Show in Finder"
+        case .copy: didCopy ? "Copied" : "Copy Image"
+        case .share: "Share"
+        case .trash: "Move to Trash"
+        }
+    }
+
+    /// Fill of the button while hovered, and of its label.
+    var tint: Color { self == .trash ? .red : .accentColor }
+}
+
+private extension View {
+    /// Sets `hovered` to `action` while the pointer is over this view, and labels it for VoiceOver.
+    func describedOnHover(as action: HoverAction, in hovered: Binding<HoverAction?>) -> some View {
+        accessibilityLabel(action.title(didCopy: false))
+            .onHover { inside in
+                if inside {
+                    hovered.wrappedValue = action
+                } else if hovered.wrappedValue == action {
+                    hovered.wrappedValue = nil
+                }
+            }
+    }
+}
+
 /// Holds the `NSView` behind an `AnchorView`, for presenting AppKit UI relative to a SwiftUI view.
-/// SwiftUI's `ShareLink` can't be used: in a context menu it has nothing to anchor to and shows nothing.
 private final class AnchorBox {
     weak var view: NSView?
 }

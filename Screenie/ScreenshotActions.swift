@@ -14,8 +14,14 @@ enum ScreenshotActions {
     }
 
     /// Shows the system share picker (AirDrop, Messages, Mail, …) for the file, below `view`.
-    static func share(_ url: URL, from view: NSView) {
-        NSSharingServicePicker(items: [url]).show(relativeTo: view.bounds, of: view, preferredEdge: .minY)
+    /// `onDismiss` runs once the picker closes, whether or not a service was chosen.
+    static func share(_ url: URL, from view: NSView, onDismiss: @escaping () -> Void = {}) {
+        let picker = NSSharingServicePicker(items: [url])
+        let delegate = SharePickerDelegate(onDismiss: onDismiss)
+        // `delegate` is weak; the picker is gone once dismissed, so this releases both.
+        objc_setAssociatedObject(picker, &SharePickerDelegate.key, delegate, .OBJC_ASSOCIATION_RETAIN)
+        picker.delegate = delegate
+        picker.show(relativeTo: view.bounds, of: view, preferredEdge: .minY)
     }
 
     /// Puts the image on the general pasteboard so it pastes as an image (not a file).
@@ -36,5 +42,19 @@ enum ScreenshotActions {
             pasteboard.clearContents()
             return pasteboard.setData(data, forType: NSPasteboard.PasteboardType(type.identifier))
         }
+    }
+}
+
+/// Reports when a share picker closes. AppKit calls `didChoose` with `nil` on dismissal.
+private final class SharePickerDelegate: NSObject, NSSharingServicePickerDelegate {
+    nonisolated(unsafe) static var key: UInt8 = 0
+    let onDismiss: () -> Void
+
+    init(onDismiss: @escaping () -> Void) {
+        self.onDismiss = onDismiss
+    }
+
+    func sharingServicePicker(_ picker: NSSharingServicePicker, didChoose service: NSSharingService?) {
+        onDismiss()
     }
 }

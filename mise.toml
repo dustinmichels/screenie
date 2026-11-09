@@ -10,9 +10,30 @@ run = "xcodegen generate"
 description = "Build the Release app into build/DerivedData"
 run = "xcodebuild -project Screenie.xcodeproj -scheme Screenie -configuration Release -destination 'generic/platform=macOS' -derivedDataPath build/DerivedData build -quiet"
 
+[tasks.dev]
+description = "Build the Debug app and run it from build/ in this terminal (Ctrl-C quits)"
+run = """
+set -eu
+xcodebuild -project Screenie.xcodeproj -scheme Screenie -configuration Debug -destination 'generic/platform=macOS' -derivedDataPath build/DerivedData build -quiet
+mise run quit
+exec build/DerivedData/Build/Products/Debug/Screenie.app/Contents/MacOS/Screenie
+"""
+
 [tasks.install]
 description = "Build, replace /Applications/Screenie.app, launch it, then clean build/"
 depends = ["build"]
+run = """
+set -eu
+mise run quit
+rm -rf /Applications/Screenie.app
+cp -R build/DerivedData/Build/Products/Release/Screenie.app /Applications/
+open /Applications/Screenie.app
+mise run cleanup
+"""
+
+[tasks.quit]
+description = "Quit Screenie if it's running"
+hide = true
 run = """
 set -eu
 if pgrep -xq Screenie; then
@@ -24,10 +45,6 @@ if pgrep -xq Screenie; then
     sleep 0.1
   done
 fi
-rm -rf /Applications/Screenie.app
-cp -R build/DerivedData/Build/Products/Release/Screenie.app /Applications/
-open /Applications/Screenie.app
-mise run cleanup
 """
 
 [tasks.cleanup]
