@@ -18,11 +18,29 @@ Run Screenie from **Applications**, not from the disk image or Downloads. **Laun
 
 ## Homebrew
 
+Already use [Homebrew](https://brew.sh)? Install with:
+
 ```sh
 brew install --cask dustinmichels/tap/screenie
 ```
 
 This installs the same notarized app into Applications from the `dustinmichels/tap` [tap](https://docs.brew.sh/Taps), which is updated with every release.
+
+### Trusting the tap
+
+Newer versions of Homebrew only load casks from third-party taps you trust. Installing with the full name, as above, trusts the Screenie cask for you. Other commands don't: running `brew info dustinmichels/tap/screenie` first, or `brew tap dustinmichels/tap` followed by `brew install --cask screenie`, stops with:
+
+```
+Error: Refusing to load cask dustinmichels/tap/screenie from untrusted tap dustinmichels/tap.
+```
+
+Trust the Screenie cask, then run the install again:
+
+```sh
+brew trust --cask dustinmichels/tap/screenie
+```
+
+To trust everything in the tap instead, run `brew trust dustinmichels/tap`. `brew trust` with no arguments lists what you trust.
 
 ## First launch
 
@@ -79,4 +97,4 @@ Screenie stores a single preference: when you last looked at your screenshots. T
 defaults delete com.dustinmichels.Screenie
 ```
 
-Installed with Homebrew? Do step 1, then run `brew uninstall --cask screenie` (it quits Screenie and removes the app). `brew uninstall --zap --cask screenie` also deletes the preference.
+Installed with Homebrew? Do step 1, then run `brew uninstall --cask screenie` (it quits Screenie and removes the app). `brew uninstall --zap --cask screenie` also deletes the preference. To also stop trusting the cask, run `brew untrust --cask dustinmichels/tap/screenie`.
