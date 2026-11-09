@@ -2,62 +2,21 @@
 
 Options for installing Screenie beyond the GitHub release DMG/zip.
 
-| Route | Effort | Blocker |
+| Route | Effort | Status |
 |---|---|---|
-| Own tap (`dustinmichels/homebrew-tap`) | Low | None |
-| Official `homebrew/cask` | Low to write | Notability thresholds |
+| Own tap (`dustinmichels/homebrew-tap`) | Low | Done: `brew install --cask dustinmichels/tap/screenie` |
+| Official `homebrew/cask` | Low to write | Blocked on notability thresholds |
 | mise | Works mechanically | Wrong install model for a menu bar app |
 
-## Custom Homebrew tap (recommended next step)
+## Custom Homebrew tap (done)
 
-Create a public repo `dustinmichels/homebrew-tap` containing `Casks/screenie.rb`.
-Users install with:
-
-```sh
-brew install --cask dustinmichels/tap/screenie
-```
-
-Cask:
-
-```ruby
-cask "screenie" do
-  version "0.1.0"
-  sha256 "<shasum -a 256 Screenie.zip>"
-
-  url "https://github.com/dustinmichels/screenie/releases/download/v#{version}/Screenie.zip"
-  name "Screenie"
-  desc "Menu bar list of recent screenshots"
-  homepage "https://github.com/dustinmichels/screenie"
-
-  livecheck do
-    url :url
-    strategy :github_latest
-  end
-
-  depends_on macos: ">= :sonoma" # project.yml deploymentTarget 14.0
-
-  app "Screenie.app"
-
-  zap trash: "~/Library/Preferences/com.dustinmichels.Screenie.plist"
-end
-```
-
-Notes:
-
-- Uses the existing release zip. The app inside is notarized, so Gatekeeper
-  passes without `--no-quarantine`.
-- No Sparkle/self-updater, so no `auto_updates true`; users update via
-  `brew upgrade`.
-- Installs into `/Applications`, which avoids the Launch at login problem of
-  running from Downloads.
-
-### Release automation
-
-Each release must bump `version` and `sha256` in the tap. Add a step at the end
-of `scripts/release.sh`, either:
-
-- clone the tap, rewrite those two lines, commit, push; or
-- `brew bump-cask-pr --tap dustinmichels/tap --version <v> screenie`.
+[dustinmichels/homebrew-tap](https://github.com/dustinmichels/homebrew-tap) holds
+`Casks/screenie.rb`, which installs the release `Screenie.dmg`.
+`scripts/release.sh` runs `scripts/update-cask.sh` after publishing, which
+rewrites `version` and `sha256` through the GitHub API (`mise run cask` reruns
+it). The cask sets `auto_updates true` because of the in-app update check, so a
+plain `brew upgrade` may leave it to the app; `brew upgrade --cask screenie`
+always upgrades it.
 
 ## Official `homebrew/cask`
 
@@ -70,8 +29,9 @@ Blocker is [notability](https://docs.brew.sh/Package-Acceptance-Policy#notabilit
 - Self-submission by the repo owner: at least 90 forks, 90 watchers, or 225 stars.
 - Submission by someone else: at least 30 forks, 30 watchers, or 75 stars.
 
-As of 2026-11-06 the repo has 0 / 0 / 0. The tap cask can be submitted
-unchanged once the project qualifies.
+As of 2026-11-08 the repo has 0 / 0 / 0. The tap cask can be submitted
+unchanged once the project qualifies (drop the `version`/`sha256` automation
+then; Homebrew's autobump updates official casks).
 
 ## mise (not recommended)
 

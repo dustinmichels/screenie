@@ -52,8 +52,12 @@ description = "Delete build/ (DerivedData, archives, release artifacts)"
 run = "rm -rf build"
 
 [tasks.release]
-description = "Bump the version (patch by default; or minor, major, X.Y.Z), notarize, tag, and publish a GitHub release with Screenie.dmg and Screenie.zip"
+description = "Bump the version (patch by default; or minor, major, X.Y.Z), notarize, tag, publish a GitHub release with Screenie.dmg and Screenie.zip, and update the Homebrew cask"
 run = "scripts/release.sh"
+
+[tasks.cask]
+description = "Point the Homebrew cask in dustinmichels/homebrew-tap at a release (default: the latest)"
+run = "scripts/update-cask.sh"
 
 [tasks.docs]
 description = "Preview the docs site"

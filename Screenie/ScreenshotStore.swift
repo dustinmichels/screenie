@@ -81,12 +81,20 @@ final class ScreenshotStore {
         if let newest = screenshots.first?.createdAt, newest > lastSeenDate { lastSeenDate = newest }
     }
 
-    /// Moves the screenshot to the Trash and drops it from the list right away, without
-    /// waiting for the folder scan or Spotlight to notice. Throws if the move fails (the list
-    /// is then left as is).
-    func trash(_ shot: Screenshot) throws {
-        try FileManager.default.trashItem(at: shot.url, resultingItemURL: nil)
-        watcher?.remove(shot.url)
+    /// Moves the screenshots to the Trash and drops each from the list right away, without
+    /// waiting for the folder scan or Spotlight to notice. Tries every screenshot, then throws
+    /// the first failure; screenshots that couldn't be moved stay listed.
+    func trash(_ shots: [Screenshot]) throws {
+        var firstError: Error?
+        for shot in shots {
+            do {
+                try FileManager.default.trashItem(at: shot.url, resultingItemURL: nil)
+                watcher?.remove(shot.url)
+            } catch {
+                if firstError == nil { firstError = error }
+            }
+        }
+        if let firstError { throw firstError }
     }
 
     /// Replaces the watcher with a fresh one for `folderURL`. The old watcher is stopped and

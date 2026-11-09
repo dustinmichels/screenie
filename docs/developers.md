@@ -82,16 +82,16 @@ The app icon is drawn by `scripts/make-icon.swift`. Edit the script and run `swi
 
 ## Releasing
 
-Producing a signed, notarized build needs a paid Apple Developer account signed in to Xcode, and the [GitHub CLI](https://cli.github.com) logged in. From a clean `main` that's level with `origin/main`:
+Producing a signed, notarized build needs a paid Apple Developer account signed in to Xcode, and the [GitHub CLI](https://cli.github.com) logged in with push access to [dustinmichels/homebrew-tap](https://github.com/dustinmichels/homebrew-tap). From a clean `main` that's level with `origin/main`:
 
 ```sh
 mise run release          # next patch version, e.g. 0.1.0 -> 0.1.1
 mise run release minor    # or major, or an exact version like 1.0.0
 ```
 
-`scripts/release.sh` bumps the version in `project.yml` (unless the current one isn't released yet), regenerates the Xcode project, commits and pushes the bump, archives the app, has Apple notarize it, and publishes a GitHub release `v<version>` with `Screenie.dmg` and `Screenie.zip` attached. The [README](https://github.com/dustinmichels/screenie#releasing) lists its preconditions and the equivalent manual steps.
+`scripts/release.sh` bumps the version in `project.yml` (unless the current one isn't released yet), regenerates the Xcode project, commits and pushes the bump, archives the app, has Apple notarize it, and publishes a GitHub release `v<version>` with `Screenie.dmg` and `Screenie.zip` attached. Then `scripts/update-cask.sh` points the Homebrew cask (`Casks/screenie.rb` in the tap) at the new `Screenie.dmg`; if that step fails, rerun `mise run cask`. The [README](https://github.com/dustinmichels/screenie#releasing) lists its preconditions and the equivalent manual steps.
 
-Installed copies find the update through this release: the in-app update check reads the latest release's `v<version>` tag and downloads its `Screenie.dmg`, so keep that tag format and asset name. Drafts and prereleases aren't offered.
+Installed copies find the update through this release: the in-app update check reads the latest release's `v<version>` tag and downloads its `Screenie.dmg`, so keep that tag format and asset name. The cask downloads the same file. Drafts and prereleases aren't offered.
 
 ## Docs
 

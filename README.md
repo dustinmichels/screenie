@@ -24,6 +24,14 @@ Each [GitHub release](https://github.com/dustinmichels/screenie/releases) has `S
 1. Open `Screenie.dmg` and drag `Screenie.app` onto the `Applications` shortcut in its window, then eject the disk image. From the zip, unzip it and drag `Screenie.app` to `/Applications`. For a local release build: `cp -R build/notarized/Screenie.app /Applications/`.
 2. Open it from `/Applications`. It's signed with a Developer ID and notarized, so Gatekeeper lets it run without warnings.
 
+### With Homebrew
+
+```sh
+brew install --cask dustinmichels/tap/screenie
+```
+
+The cask lives in [dustinmichels/homebrew-tap](https://github.com/dustinmichels/homebrew-tap) and installs the release's notarized `Screenie.dmg` into `/Applications`. Update with `brew upgrade --cask screenie` or the in-app update check.
+
 ### From source
 
 With [mise](https://mise.jdx.dev), one command builds the Release app, quits any running Screenie, replaces `/Applications/Screenie.app`, and launches it:
@@ -75,7 +83,7 @@ Screenie watches the folder macOS saves screenshots to (⌘⇧5 → **Options** 
 
 ## Releasing
 
-Producing a signed, notarized build needs a paid Apple Developer account signed in to Xcode (Settings → Accounts). `ExportOptions.plist` exports for Developer ID distribution with automatic signing for team `LLM5F36KYW`; change `teamID` for another account. Publishing needs the [GitHub CLI](https://cli.github.com) logged in (`gh auth login`).
+Producing a signed, notarized build needs a paid Apple Developer account signed in to Xcode (Settings → Accounts). `ExportOptions.plist` exports for Developer ID distribution with automatic signing for team `LLM5F36KYW`; change `teamID` for another account. Publishing needs the [GitHub CLI](https://cli.github.com) logged in (`gh auth login`) with push access to [dustinmichels/homebrew-tap](https://github.com/dustinmichels/homebrew-tap).
 
 To cut a release from a clean `main` that's level with `origin/main`:
 
@@ -86,7 +94,9 @@ mise run release minor    # or major, or an exact version like 1.0.0
 
 If `v<MARKETING_VERSION>` is already tagged (or you pass `patch`, `minor`, `major`, or `X.Y.Z`), `scripts/release.sh` first bumps `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` in `project.yml`, regenerates `Screenie.xcodeproj`, and commits and pushes `chore(release): v<version>` to `main`. If the version isn't tagged yet (you bumped it by hand, or a previous release failed after its bump), plain `mise run release` releases it as-is.
 
-The script refuses to start unless the working tree is clean, you're on `main` level with `origin/main`, `gh` is logged in, `project.yml` and `Screenie.xcodeproj` agree on the version, and neither the tag `v<version>` nor a GitHub release for it exists yet. It then runs steps 1–4 below, polls every 30 s until Apple has notarized the build (gives up after 2 h), checks the result, and only then creates and pushes the annotated tag and publishes a GitHub release with generated notes and `Screenie.dmg` and `Screenie.zip` attached. If anything fails before that, no tag or release exists, so fix it and rerun `mise run release` without an argument to release the already-bumped version.
+The script refuses to start unless the working tree is clean, you're on `main` level with `origin/main`, `gh` is logged in and can push to the tap, `project.yml` and `Screenie.xcodeproj` agree on the version, and neither the tag `v<version>` nor a GitHub release for it exists yet. It then runs steps 1–4 below, polls every 30 s until Apple has notarized the build (gives up after 2 h), checks the result, and only then creates and pushes the annotated tag and publishes a GitHub release with generated notes and `Screenie.dmg` and `Screenie.zip` attached. If anything fails before that, no tag or release exists, so fix it and rerun `mise run release` without an argument to release the already-bumped version.
+
+Last, it runs `scripts/update-cask.sh <version>`, which downloads the published `Screenie.dmg`, hashes it, and commits the new `version` and `sha256` to `Casks/screenie.rb` in the tap through the GitHub API. If that step fails, the release is already out; rerun `mise run cask` (latest release) or `scripts/update-cask.sh <version>`. Rerunning is a no-op when the cask already matches.
 
 The same steps by hand:
 
@@ -113,6 +123,9 @@ ditto -c -k --keepParent build/notarized/Screenie.app build/Screenie.zip
 mkdir -p build/dmg && ditto build/notarized/Screenie.app build/dmg/Screenie.app
 ln -s /Applications build/dmg/Applications
 hdiutil create -volname Screenie -srcfolder build/dmg -fs HFS+ -format UDZO build/Screenie.dmg
+
+# 5. After tagging and publishing the GitHub release, point the Homebrew cask at it
+scripts/update-cask.sh <version>
 ```
 
 The disk image itself isn't signed or notarized. The app inside is notarized with its ticket stapled, and that's what Gatekeeper checks when the app is opened, so a downloaded DMG mounts and the app runs without warnings. Signing and notarizing the DMG too would need a local Developer ID certificate (Xcode signs in the cloud) and `notarytool` credentials.

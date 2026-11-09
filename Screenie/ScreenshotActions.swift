@@ -3,9 +3,9 @@ import UniformTypeIdentifiers
 
 /// File actions offered on each screenshot (plan section 8). Main-thread only.
 enum ScreenshotActions {
-    /// Opens a Finder window on the file's folder with the file selected.
-    static func revealInFinder(_ url: URL) {
-        NSWorkspace.shared.activateFileViewerSelecting([url])
+    /// Opens a Finder window on the files' folder with the files selected.
+    static func revealInFinder(_ urls: [URL]) {
+        NSWorkspace.shared.activateFileViewerSelecting(urls)
     }
 
     /// Opens the file in its default app (Preview for images).
@@ -13,10 +13,10 @@ enum ScreenshotActions {
         NSWorkspace.shared.open(url)
     }
 
-    /// Shows the system share picker (AirDrop, Messages, Mail, …) for the file, below `view`.
+    /// Shows the system share picker (AirDrop, Messages, Mail, …) for the files, below `view`.
     /// `onDismiss` runs once the picker closes, whether or not a service was chosen.
-    static func share(_ url: URL, from view: NSView, onDismiss: @escaping () -> Void = {}) {
-        let picker = NSSharingServicePicker(items: [url])
+    static func share(_ urls: [URL], from view: NSView, onDismiss: @escaping () -> Void = {}) {
+        let picker = NSSharingServicePicker(items: urls)
         let delegate = SharePickerDelegate(onDismiss: onDismiss)
         // `delegate` is weak; the picker is gone once dismissed, so this releases both.
         objc_setAssociatedObject(picker, &SharePickerDelegate.key, delegate, .OBJC_ASSOCIATION_RETAIN)

@@ -25,8 +25,11 @@ The popover shows a two-column grid of up to 50 screenshots, newest first. Each 
 | Move it to the Trash | Hover → trash button, or right-click → **Move to Trash…**, then confirm with Return (Escape cancels) |
 | Share it (AirDrop, Messages, Mail, …) | Hover → share button |
 | Put it in another app | Drag the thumbnail into a Finder window, email, chat, etc. |
+| Select several | Hover → checkbox in the top-left corner. Once one is ticked, every checkbox shows |
 
-The footer has the **Launch at login** checkbox, **Check for Updates…**, and **Quit Screenie** (⌘Q).
+With screenshots ticked, the hover buttons and right-click menu of any ticked screenshot act on all of them: **Show in Finder** opens one Finder window with them all selected, **Share** shares them together, **Move to Trash…** asks once for the lot, and **Open** opens each. **Copy Image** is disabled, since the clipboard holds one image. Actions on an unticked screenshot still affect only that one.
+
+The footer has the **Launch at login** checkbox, **Check for Updates…**, and **Quit Screenie** (⌘Q). While screenshots are ticked, **Launch at login** gives way to the number selected and **Deselect All**. Closing the popover clears the selection.
 
 If the folder has no screenshots yet, the popover shows the folder it's watching, so you can tell whether ⌘⇧5 → **Options** → **Save to** points where you expect.
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build, notarize, tag, and publish a GitHub release of Screenie.
+# Build, notarize, tag, and publish a GitHub release of Screenie, then update the Homebrew cask.
 #
 # Usage: scripts/release.sh [patch|minor|major|X.Y.Z]
 #   With an argument, bumps MARKETING_VERSION (and CURRENT_PROJECT_VERSION) in project.yml,
@@ -41,6 +41,7 @@ git fetch --quiet --tags origin main
 [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] ||
   die "main and origin/main differ; push or pull first"
 gh auth status >/dev/null 2>&1 || die "gh is not logged in; run 'gh auth login'"
+scripts/update-cask.sh --check
 
 yml_version=$(awk '$1 == "MARKETING_VERSION:" { gsub(/"/, "", $2); print $2; exit }' project.yml)
 [[ "$yml_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "project.yml MARKETING_VERSION '$yml_version' is not X.Y.Z"
@@ -132,6 +133,10 @@ step "Tagging $tag and publishing the GitHub release"
 git tag -a "$tag" -m "Screenie $version"
 git push origin "$tag"
 gh release create "$tag" "$DMG" "$ZIP" --verify-tag --title "Screenie $version" --generate-notes
+
+step "Updating the Homebrew cask"
+scripts/update-cask.sh "$version" ||
+  die "$tag is published, but the Homebrew cask wasn't updated; rerun 'scripts/update-cask.sh $version'"
 
 echo
 echo "Released $(gh release view "$tag" --json url --jq .url)"

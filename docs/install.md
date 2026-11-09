@@ -16,6 +16,14 @@ Screenie is signed and notarized by Apple, so it opens without security warnings
 Run Screenie from **Applications**, not from the disk image or Downloads. **Launch at login** remembers where the app was when you turned it on, and macOS remembers folder access for that one copy.
 :::
 
+## Homebrew
+
+```sh
+brew install --cask dustinmichels/tap/screenie
+```
+
+This installs the same notarized app into Applications from the `dustinmichels/tap` [tap](https://docs.brew.sh/Taps), which is updated with every release.
+
 ## First launch
 
 1. **Allow folder access.** If your screenshots are saved to Desktop, Documents, or Downloads, macOS asks whether Screenie may access that folder. Click **Allow**. If you deny it, the popover says it can't read the folder and links to **System Settings → Privacy & Security → Files and Folders**, where you can turn access back on. Screenie retries the next time you open the popover.
@@ -57,6 +65,8 @@ To update by hand instead:
 
 Launch at login and folder access carry over to the new version.
 
+Installed with Homebrew? The in-app update works the same way, or run `brew upgrade --cask screenie`.
+
 ## Uninstall
 
 1. Uncheck **Launch at login** in the popover if you turned it on.
@@ -68,3 +78,5 @@ Screenie stores a single preference: when you last looked at your screenshots. T
 ```sh
 defaults delete com.dustinmichels.Screenie
 ```
+
+Installed with Homebrew? Do step 1, then run `brew uninstall --cask screenie` (it quits Screenie and removes the app). `brew uninstall --zap --cask screenie` also deletes the preference.

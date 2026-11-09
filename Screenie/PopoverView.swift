@@ -14,8 +14,12 @@ struct PopoverView: View {
     /// Newest screenshot at the time the popover was opened from the dot; cleared on close.
     @State private var highlighted: Screenshot.ID?
 
-    /// Screenshot waiting on the Move to Trash confirmation; non-nil shows the dialog.
-    @State private var pendingTrash: Screenshot?
+    /// Screenshots ticked with their checkboxes; cleared on close. Hover and right-click actions
+    /// on a ticked screenshot apply to all ticked screenshots.
+    @State private var selection: Set<Screenshot.ID> = []
+
+    /// Screenshots waiting on the Move to Trash confirmation; non-nil shows the dialog.
+    @State private var pendingTrash: [Screenshot]?
 
     private static let columns = [GridItem](
         repeating: GridItem(.fixed(Thumbnail.pointSize), spacing: 12), count: 2
@@ -29,13 +33,23 @@ struct PopoverView: View {
                 } else if isOpen {
                     // Built fresh on every open, so it starts scrolled to the top.
                     ScrollView {
+                        // Ticked screenshots in list order: what actions on any of them apply to.
+                        let selected = store.screenshots.filter { selection.contains($0.id) }
                         // `screenshots` is already sorted newest first.
                         LazyVGrid(columns: Self.columns, spacing: 12) {
                             ForEach(store.screenshots) { shot in
+                                let isSelected = selection.contains(shot.id)
+                                let targets = isSelected ? selected : [shot]
                                 ScreenshotCell(
                                     shot: shot, store: store,
                                     isHighlighted: shot.id == highlighted,
-                                    requestTrash: { pendingTrash = shot }
+                                    isSelected: isSelected,
+                                    isSelecting: !selection.isEmpty,
+                                    targets: targets,
+                                    toggleSelection: {
+                                        if selection.remove(shot.id) == nil { selection.insert(shot.id) }
+                                    },
+                                    requestTrash: { pendingTrash = targets }
                                 )
                             }
                         }
@@ -53,14 +67,18 @@ struct PopoverView: View {
             "Move to Trash?",
             isPresented: Binding(get: { pendingTrash != nil }, set: { if !$0 { pendingTrash = nil } }),
             presenting: pendingTrash
-        ) { shot in
+        ) { shots in
             Button("Move to Trash") {
-                do { try store.trash(shot) } catch { NSSound.beep() }
+                do { try store.trash(shots) } catch { NSSound.beep() }
             }
             .keyboardShortcut(.defaultAction)
             Button("Cancel", role: .cancel) {}
-        } message: { shot in
-            Text("\u{201C}\(shot.url.lastPathComponent)\u{201D} will be moved to the Trash.")
+        } message: { shots in
+            if shots.count == 1 {
+                Text("\u{201C}\(shots[0].url.lastPathComponent)\u{201D} will be moved to the Trash.")
+            } else {
+                Text("\(shots.count) screenshots will be moved to the Trash.")
+            }
         }
         .onAppear {
             isOpen = true
@@ -74,17 +92,28 @@ struct PopoverView: View {
             isOpen = false
             highlighted = nil
             pendingTrash = nil
+            selection = []
         }
         // The window outlives a close, so only screenshots arriving while it's open count as seen.
         .onChange(of: store.screenshots.first?.createdAt) {
             if isOpen { store.markSeen() }
         }
+        // Drop screenshots that left the list (trashed here or elsewhere) from the selection.
+        .onChange(of: store.screenshots) {
+            selection.formIntersection(store.screenshots.map(\.id))
+        }
     }
 
-    /// App-level controls. `LSUIElement` apps have no app menu, so Quit lives here.
+    /// App-level controls. `LSUIElement` apps have no app menu, so Quit lives here. While
+    /// screenshots are ticked, the left side counts them instead and offers to untick them all.
     private var footer: some View {
         HStack {
-            LaunchAtLoginToggle()
+            if selection.isEmpty {
+                LaunchAtLoginToggle()
+            } else {
+                Text("\(selection.count) selected").foregroundStyle(.secondary)
+                Button("Deselect All") { selection = [] }
+            }
             Spacer()
             Button("Check for Updates\u{2026}") { Task { await updater.checkNow() } }
                 .disabled(updater.isBusy)
@@ -132,14 +161,22 @@ struct PopoverView: View {
 }
 
 /// One grid item: the thumbnail, fitted into a fixed-size cell, with its age underneath.
-/// Actions: double-click opens; hover shows copy/share/trash buttons and a centered reveal-in-Finder
-/// button, and while the pointer is on one of them the age line names its action; right-click menu
-/// has all of them except Share, plus Open.
+/// Actions: double-click opens; hover shows a checkbox, copy/share/trash buttons, and a centered
+/// reveal-in-Finder button, and while the pointer is on one of them the age line names its action;
+/// right-click menu has all of them except Share, plus Open. On a ticked screenshot, actions apply
+/// to every ticked screenshot (`targets`), and Copy is disabled when that's more than one.
 private struct ScreenshotCell: View {
     let shot: Screenshot
     let store: ScreenshotStore
     let isHighlighted: Bool
-    /// Asks `PopoverView` to confirm, then trash, this screenshot.
+    let isSelected: Bool
+    /// True while any screenshot is ticked; keeps every checkbox visible.
+    let isSelecting: Bool
+    /// Screenshots the actions apply to, in list order: all ticked ones if this one is ticked,
+    /// else just this one.
+    let targets: [Screenshot]
+    let toggleSelection: () -> Void
+    /// Asks `PopoverView` to confirm, then trash, `targets`.
     let requestTrash: () -> Void
 
     @State private var isHovering = false
@@ -163,6 +200,9 @@ private struct ScreenshotCell: View {
         VStack(spacing: 4) {
             ThumbnailView(url: shot.url, cache: store.thumbnails)
                 .frame(width: Thumbnail.pointSize, height: Thumbnail.pointSize * 0.625)
+                .overlay(alignment: .topLeading) {
+                    if isSelecting || isHovering || isSharing { checkbox.padding(4) }
+                }
                 .overlay(alignment: .topTrailing) {
                     if isHovering || isSharing { hoverButtons.padding(4) }
                 }
@@ -171,12 +211,13 @@ private struct ScreenshotCell: View {
                 }
             if let hoveredAction {
                 // Tinted like the hovered button's fill, so the two read as a pair.
-                Text(hoveredAction.title(didCopy: didCopy))
+                let tint = hoveredAction == .copy && !canCopy ? Color.secondary : hoveredAction.tint
+                Text(title(for: hoveredAction))
                     .font(.caption.weight(.medium))
-                    .foregroundStyle(hoveredAction.tint)
+                    .foregroundStyle(tint)
                     // Negative padding grows the pill past the text without changing the row height.
                     .background {
-                        Capsule().fill(hoveredAction.tint.opacity(0.12)).padding(.horizontal, -6).padding(.vertical, -1)
+                        Capsule().fill(tint.opacity(0.12)).padding(.horizontal, -6).padding(.vertical, -1)
                     }
                     .transition(.opacity.combined(with: .scale(scale: 0.85)))
             } else {
@@ -191,10 +232,10 @@ private struct ScreenshotCell: View {
         .animation(.easeOut(duration: 0.12), value: hoveredAction)
         // Drawn in the grid's 12 pt gutter so the cell layout doesn't shift.
         .background {
-            if isHighlighted {
+            if isHighlighted || isSelected {
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.accentColor.opacity(0.12))
-                    .strokeBorder(Color.accentColor, lineWidth: 2)
+                    .fill(Color.accentColor.opacity(isSelected ? 0.22 : 0.12))
+                    .strokeBorder(Color.accentColor.opacity(isHighlighted ? 1 : 0), lineWidth: 2)
                     .padding(-5)
             }
         }
@@ -208,17 +249,49 @@ private struct ScreenshotCell: View {
         .onDrag { NSItemProvider(contentsOf: shot.url) ?? NSItemProvider() }
         .grabPointer()
         .contextMenu {
-            Button("Open") { ScreenshotActions.open(shot.url) }
-            Button("Show in Finder") { ScreenshotActions.revealInFinder(shot.url) }
-            Button("Copy Image") { copy() }
+            Button(targets.count > 1 ? "Open \(targets.count)" : "Open") {
+                for target in targets { ScreenshotActions.open(target.url) }
+            }
+            Button(title(for: .reveal), action: reveal)
+            Button("Copy Image", action: copy).disabled(!canCopy)
             Divider()
-            Button("Move to Trash…", action: requestTrash)
+            Button(title(for: .trash) + "\u{2026}", action: requestTrash)
         }
+    }
+
+    /// Copy puts one image on the clipboard, so it's off while acting on several.
+    private var canCopy: Bool { targets.count == 1 }
+
+    private func title(for action: HoverAction) -> String {
+        action.title(count: targets.count, isSelected: isSelected, didCopy: didCopy)
+    }
+
+    /// Round checkbox: filled with a checkmark when ticked, else an outlined circle that previews
+    /// the checkmark while pointed at.
+    private var checkbox: some View {
+        Button(action: toggleSelection) {
+            Image(systemName: "checkmark")
+                .font(.system(size: 9, weight: .bold))
+                .foregroundStyle(
+                    isSelected ? AnyShapeStyle(.white)
+                        : hoveredAction == .select ? AnyShapeStyle(.secondary) : AnyShapeStyle(.clear)
+                )
+                .frame(width: 18, height: 18)
+                .background(isSelected ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.regularMaterial), in: Circle())
+                .overlay {
+                    if !isSelected { Circle().strokeBorder(.secondary, lineWidth: 1) }
+                }
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .arrowPointer()
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .describedOnHover(as: .select, title: title(for: .select), in: $hoveredAction)
     }
 
     private var hoverButtons: some View {
         HStack(spacing: 2) {
-            iconButton(didCopy ? "checkmark" : "doc.on.doc", action: .copy, perform: copy)
+            iconButton(didCopy ? "checkmark" : "doc.on.doc", action: .copy, isEnabled: canCopy, perform: copy)
             iconButton("square.and.arrow.up", action: .share, perform: share)
             .background(AnchorView(box: shareButtonAnchor))
             iconButton("trash", action: .trash, perform: requestTrash)
@@ -228,7 +301,7 @@ private struct ScreenshotCell: View {
     }
 
     private var revealButton: some View {
-        Button { ScreenshotActions.revealInFinder(shot.url) } label: {
+        Button(action: reveal) {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 16, weight: .semibold))
                 .frame(width: 36, height: 36)
@@ -236,10 +309,12 @@ private struct ScreenshotCell: View {
         .buttonStyle(
             HoverFillButtonStyle(shape: Circle(), tint: HoverAction.reveal.tint, rest: AnyShapeStyle(.regularMaterial))
         )
-        .describedOnHover(as: .reveal, in: $hoveredAction)
+        .describedOnHover(as: .reveal, title: title(for: .reveal), in: $hoveredAction)
     }
 
-    private func iconButton(_ symbol: String, action: HoverAction, perform: @escaping () -> Void) -> some View {
+    private func iconButton(
+        _ symbol: String, action: HoverAction, isEnabled: Bool = true, perform: @escaping () -> Void
+    ) -> some View {
         Button(action: perform) {
             Image(systemName: symbol)
                 .font(.system(size: 11, weight: .medium))
@@ -247,11 +322,17 @@ private struct ScreenshotCell: View {
         }
         // Inner radius of the 6 pt container minus its 2 pt padding.
         .buttonStyle(HoverFillButtonStyle(shape: RoundedRectangle(cornerRadius: 4), tint: action.tint))
-        .describedOnHover(as: action, in: $hoveredAction)
+        // Applied inside the hover tracking, so a disabled button still names itself.
+        .disabled(!isEnabled)
+        .describedOnHover(as: action, title: title(for: action), in: $hoveredAction)
+    }
+
+    private func reveal() {
+        ScreenshotActions.revealInFinder(targets.map(\.url))
     }
 
     private func copy() {
-        guard ScreenshotActions.copyImage(shot.url) else { return NSSound.beep() }
+        guard canCopy, ScreenshotActions.copyImage(shot.url) else { return NSSound.beep() }
         didCopy = true
         Task {
             try? await Task.sleep(for: .seconds(1.2))
@@ -262,7 +343,7 @@ private struct ScreenshotCell: View {
     private func share() {
         guard let view = shareButtonAnchor.view, view.window != nil else { return NSSound.beep() }
         isSharing = true
-        ScreenshotActions.share(shot.url, from: view) { isSharing = false }
+        ScreenshotActions.share(targets.map(\.url), from: view) { isSharing = false }
     }
 
     private static let ageFormatter: RelativeDateTimeFormatter = {
@@ -280,14 +361,16 @@ private struct ScreenshotCell: View {
 
 /// The cell's hover buttons, for naming the one under the pointer.
 private enum HoverAction {
-    case reveal, copy, share, trash
+    case select, reveal, copy, share, trash
 
-    func title(didCopy: Bool) -> String {
+    /// `count` is how many screenshots the action applies to.
+    func title(count: Int, isSelected: Bool, didCopy: Bool) -> String {
         switch self {
-        case .reveal: "Show in Finder"
-        case .copy: didCopy ? "Copied" : "Copy Image"
-        case .share: "Share"
-        case .trash: "Move to Trash"
+        case .select: isSelected ? "Deselect" : "Select"
+        case .reveal: count > 1 ? "Show \(count) in Finder" : "Show in Finder"
+        case .copy: count > 1 ? "Copy One at a Time" : didCopy ? "Copied" : "Copy Image"
+        case .share: count > 1 ? "Share \(count)" : "Share"
+        case .trash: count > 1 ? "Move \(count) to Trash" : "Move to Trash"
         }
     }
 
@@ -297,8 +380,8 @@ private enum HoverAction {
 
 private extension View {
     /// Sets `hovered` to `action` while the pointer is over this view, and labels it for VoiceOver.
-    func describedOnHover(as action: HoverAction, in hovered: Binding<HoverAction?>) -> some View {
-        accessibilityLabel(action.title(didCopy: false))
+    func describedOnHover(as action: HoverAction, title: String, in hovered: Binding<HoverAction?>) -> some View {
+        accessibilityLabel(title)
             .onHover { inside in
                 if inside {
                     hovered.wrappedValue = action
@@ -330,7 +413,8 @@ private struct AnchorView: NSViewRepresentable {
 }
 
 /// Icon button that fills with `tint` and turns its icon white while hovered, so it reads as
-/// clickable over the thumbnail. Shows the arrow pointer inside a `grabPointer()` cell.
+/// clickable over the thumbnail. Dimmed and never filled while disabled. Shows the arrow pointer
+/// inside a `grabPointer()` cell.
 private struct HoverFillButtonStyle<S: Shape>: ButtonStyle {
     let shape: S
     var tint: Color = .accentColor
@@ -344,13 +428,15 @@ private struct HoverFillButtonStyle<S: Shape>: ButtonStyle {
     private struct Fill: View {
         let configuration: ButtonStyleConfiguration
         let style: HoverFillButtonStyle
+        @Environment(\.isEnabled) private var isEnabled
         @State private var isHovering = false
 
         var body: some View {
+            let isFilled = isHovering && isEnabled
             configuration.label
-                .foregroundStyle(isHovering ? Color.white : Color.primary)
-                .background(isHovering ? AnyShapeStyle(style.tint) : style.rest, in: style.shape)
-                .opacity(configuration.isPressed ? 0.7 : 1)
+                .foregroundStyle(isFilled ? Color.white : Color.primary)
+                .background(isFilled ? AnyShapeStyle(style.tint) : style.rest, in: style.shape)
+                .opacity(!isEnabled ? 0.35 : configuration.isPressed ? 0.7 : 1)
                 .contentShape(style.shape)
                 .onHover { isHovering = $0 }
                 .animation(.easeOut(duration: 0.12), value: isHovering)
