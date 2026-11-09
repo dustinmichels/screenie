@@ -1,10 +1,16 @@
+# ─── Tools ────────────────────────────────────────────────────────────────────
+
 [tools]
 xcodegen = "2.46.0"
 bun = "1.4.4"
 
+# ─── Project ──────────────────────────────────────────────────────────────────
+
 [tasks.generate]
 description = "Regenerate Screenie.xcodeproj from project.yml"
 run = "xcodegen generate"
+
+# ─── Build & run ──────────────────────────────────────────────────────────────
 
 [tasks.build]
 description = "Build the Release app into build/DerivedData"
@@ -12,44 +18,23 @@ run = "xcodebuild -project Screenie.xcodeproj -scheme Screenie -configuration Re
 
 [tasks.dev]
 description = "Build the Debug app and run it from build/ in this terminal (Ctrl-C quits)"
-run = """
-set -eu
-xcodebuild -project Screenie.xcodeproj -scheme Screenie -configuration Debug -destination 'generic/platform=macOS' -derivedDataPath build/DerivedData build -quiet
-mise run quit
-exec build/DerivedData/Build/Products/Debug/Screenie.app/Contents/MacOS/Screenie
-"""
+run = "scripts/dev.sh"
 
 [tasks.install]
 description = "Build, replace /Applications/Screenie.app, launch it, then clean build/"
 depends = ["build"]
-run = """
-set -eu
-mise run quit
-rm -rf /Applications/Screenie.app
-cp -R build/DerivedData/Build/Products/Release/Screenie.app /Applications/
-open /Applications/Screenie.app
-mise run cleanup
-"""
+run = "scripts/install.sh"
 
 [tasks.quit]
 description = "Quit Screenie if it's running"
 hide = true
-run = """
-set -eu
-if pgrep -xq Screenie; then
-  osascript -e 'quit app id "com.dustinmichels.Screenie"'
-  i=0
-  while pgrep -xq Screenie; do
-    i=$((i + 1))
-    if [ "$i" -ge 50 ]; then echo "Screenie didn't quit; quit it and rerun." >&2; exit 1; fi
-    sleep 0.1
-  done
-fi
-"""
+run = "scripts/quit.sh"
 
 [tasks.cleanup]
 description = "Delete build/ (DerivedData, archives, release artifacts)"
 run = "rm -rf build"
+
+# ─── Release ──────────────────────────────────────────────────────────────────
 
 [tasks.release]
 description = "Bump the version (patch by default; or minor, major, X.Y.Z), notarize, tag, publish a GitHub release with Screenie.dmg and Screenie.zip, and update the Homebrew cask"
@@ -58,6 +43,8 @@ run = "scripts/release.sh"
 [tasks.cask]
 description = "Point the Homebrew cask in dustinmichels/homebrew-tap at a release (default: the latest)"
 run = "scripts/update-cask.sh"
+
+# ─── Docs ─────────────────────────────────────────────────────────────────────
 
 [tasks.docs]
 description = "Preview the docs site"
