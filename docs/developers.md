@@ -82,16 +82,58 @@ The app icon is drawn by `scripts/make-icon.swift`. Edit the script and run `swi
 
 ## Releasing
 
-Producing a signed, notarized build needs a paid Apple Developer account signed in to Xcode, and the [GitHub CLI](https://cli.github.com) logged in with push access to [dustinmichels/homebrew-tap](https://github.com/dustinmichels/homebrew-tap). From a clean `main` that's level with `origin/main`:
+Producing a signed, notarized build needs a paid Apple Developer account signed in to Xcode (Settings → Accounts). `ExportOptions.plist` exports for Developer ID distribution with automatic signing for team `LLM5F36KYW`; change `teamID` for another account. Publishing needs the [GitHub CLI](https://cli.github.com) logged in (`gh auth login`) with push access to [dustinmichels/homebrew-tap](https://github.com/dustinmichels/homebrew-tap).
+
+To cut a release from a clean `main` that's level with `origin/main`:
 
 ```sh
 mise run release          # next patch version, e.g. 0.1.0 -> 0.1.1
 mise run release minor    # or major, or an exact version like 1.0.0
 ```
 
-`scripts/release.sh` bumps the version in `project.yml` (unless the current one isn't released yet), regenerates the Xcode project, commits and pushes the bump, archives the app, has Apple notarize it, and publishes a GitHub release `v<version>` with `Screenie.dmg` and `Screenie.zip` attached. Then `scripts/update-cask.sh` points the Homebrew cask (`Casks/screenie.rb` in the tap) at the new `Screenie.dmg`; if that step fails, rerun `mise run cask`. The [README](https://github.com/dustinmichels/screenie#releasing) lists its preconditions and the equivalent manual steps.
+If `v<MARKETING_VERSION>` is already tagged (or you pass `patch`, `minor`, `major`, or `X.Y.Z`), `scripts/release.sh` first bumps `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` in `project.yml`, regenerates `Screenie.xcodeproj`, and commits and pushes `chore(release): v<version>` to `main`. If the version isn't tagged yet (you bumped it by hand, or a previous release failed after its bump), plain `mise run release` releases it as-is.
+
+The script refuses to start unless the working tree is clean, you're on `main` level with `origin/main`, `gh` is logged in and can push to the tap, `project.yml` and `Screenie.xcodeproj` agree on the version, and neither the tag `v<version>` nor a GitHub release for it exists yet. It then runs steps 1–4 below, polls every 30 s until Apple has notarized the build (gives up after 2 h), checks the result, and only then creates and pushes the annotated tag and publishes a GitHub release with generated notes and `Screenie.dmg` and `Screenie.zip` attached. If anything fails before that, no tag or release exists, so fix it and rerun `mise run release` without an argument to release the already-bumped version.
+
+Last, it runs `scripts/update-cask.sh <version>`, which downloads the published `Screenie.dmg`, hashes it, and commits the new `version` and `sha256` to `Casks/screenie.rb` in the tap through the GitHub API. If that step fails, the release is already out; rerun `mise run cask` (latest release) or `scripts/update-cask.sh <version>`. Rerunning is a no-op when the cask already matches.
 
 Installed copies find the update through this release: the in-app update check reads the latest release's `v<version>` tag and downloads its `Screenie.dmg`, so keep that tag format and asset name. The cask downloads the same file. Drafts and prereleases aren't offered.
+
+### Releasing by hand
+
+```sh
+# 1. Archive
+xcodebuild -project Screenie.xcodeproj -scheme Screenie -configuration Release \
+  -derivedDataPath build/DerivedData -archivePath build/Screenie.xcarchive archive
+
+# 2. Upload to Apple's notary service, signed with the Developer ID
+cp ExportOptions.plist build/upload.plist
+plutil -insert destination -string upload build/upload.plist
+xcodebuild -exportArchive -archivePath build/Screenie.xcarchive \
+  -exportOptionsPlist build/upload.plist -exportPath build/notarize -allowProvisioningUpdates
+
+# 3. Once Apple has notarized it, export the stapled app.
+#    Fails with "is processing" until then (minutes, longer for a first submission); rerun.
+xcodebuild -exportNotarizedApp -archivePath build/Screenie.xcarchive \
+  -exportPath build/notarized -allowProvisioningUpdates
+
+# 4. Check, zip, and build the disk image
+xcrun stapler validate build/notarized/Screenie.app
+spctl -a -vvv -t exec build/notarized/Screenie.app   # "source=Notarized Developer ID"
+ditto -c -k --keepParent build/notarized/Screenie.app build/Screenie.zip
+mkdir -p build/dmg && ditto build/notarized/Screenie.app build/dmg/Screenie.app
+ln -s /Applications build/dmg/Applications
+hdiutil create -volname Screenie -srcfolder build/dmg -fs HFS+ -format UDZO build/Screenie.dmg
+
+# 5. After tagging and publishing the GitHub release, point the Homebrew cask at it
+scripts/update-cask.sh <version>
+```
+
+The disk image itself isn't signed or notarized. The app inside is notarized with its ticket stapled, and that's what Gatekeeper checks when the app is opened, so a downloaded DMG mounts and the app runs without warnings. Signing and notarizing the DMG too would need a local Developer ID certificate (Xcode signs in the cloud) and `notarytool` credentials.
+
+To sign without notarizing, run step 2 with `ExportOptions.plist` as-is (`-exportPath build/export`).
+
+If you prefer `notarytool` (not used for the current builds): sign without notarizing as above, zip `build/export/Screenie.app` with `ditto`, store credentials once with `xcrun notarytool store-credentials`, then `xcrun notarytool submit build/Screenie.zip --keychain-profile <profile> --wait` and `xcrun stapler staple build/export/Screenie.app`. Zip again after stapling.
 
 ## Docs
 
