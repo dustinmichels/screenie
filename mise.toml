@@ -20,6 +20,10 @@ run = "xcodebuild -project Screenie.xcodeproj -scheme Screenie -configuration Re
 description = "Build the Debug app and run it from build/ in this terminal (Ctrl-C quits)"
 run = "scripts/dev.sh"
 
+[tasks.demo]
+description = "Like dev, but watching generated fake screenshots in build/demo-screenshots (for docs captures)"
+run = "scripts/demo.sh"
+
 [tasks.install]
 description = "Build, replace /Applications/Screenie.app, launch it, then clean build/"
 depends = ["build"]

@@ -13,8 +13,12 @@ enum ScreenshotLocation {
     }
 
     /// Configured path, falling back to `~/Desktop` (the macOS default) when the key is unset.
+    /// Debug builds watch `$SCREENIE_FOLDER` instead when it's set (`mise run demo`).
     static func path() -> String {
-        configuredPath() ?? "~/Desktop"
+        #if DEBUG
+        if let folder = ProcessInfo.processInfo.environment["SCREENIE_FOLDER"], !folder.isEmpty { return folder }
+        #endif
+        return configuredPath() ?? "~/Desktop"
     }
 
     /// Screenshot folder as an absolute, standardized, symlink-resolved directory URL.

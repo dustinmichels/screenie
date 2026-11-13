@@ -25,6 +25,10 @@ features:
     details: Double-click, hover, right-click, or drag a thumbnail straight into another app.
 ---
 
+<div class="home-screenshot">
+  <img src="/screenshots/popover.png" width="406" alt="The Screenie popover: a two-column grid of recent screenshots, newest first, each labeled with how long ago it was taken">
+</div>
+
 <div class="home-footnote">
 
 Requires macOS 14 or later. Want to build it yourself? See the [developer guide](/developers).
@@ -32,6 +36,12 @@ Requires macOS 14 or later. Want to build it yourself? See the [developer guide]
 </div>
 
 <style>
+.home-screenshot {
+  display: flex;
+  justify-content: center;
+  margin: 48px 0 32px;
+}
+
 .home-footnote {
   text-align: center;
   color: var(--vp-c-text-2);

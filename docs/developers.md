@@ -30,15 +30,16 @@ mise run install
 
 This builds the Release app, quits Screenie if it's running, deletes `/Applications/Screenie.app`, copies the new build there, launches it, and then deletes `build/`. It replaces whatever copy is installed, including a notarized release build.
 
-| Task | Does |
-| --- | --- |
-| `mise run dev` | Builds the Debug app and runs it from `build/` in the terminal; Ctrl-C quits it |
-| `mise run build` | Builds the Release app into `build/DerivedData` |
-| `mise run install` | `build`, then replaces `/Applications/Screenie.app`, launches it, and runs `cleanup` |
-| `mise run cleanup` | Deletes `build/` (DerivedData, archives, release artifacts) |
-| `mise run generate` | Regenerates `Screenie.xcodeproj` from `project.yml` |
-| `mise run release` | Notarizes, tags, and publishes a GitHub release (see [Releasing](#releasing)) |
-| `mise run docs` | Previews this docs site |
+| Task                | Does                                                                                                                          |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `mise run dev`      | Builds the Debug app and runs it from `build/` in the terminal; Ctrl-C quits it                                               |
+| `mise run demo`     | Like `dev`, but lists fake sample screenshots instead of your own (see [Screenshots for the docs](#screenshots-for-the-docs)) |
+| `mise run build`    | Builds the Release app into `build/DerivedData`                                                                               |
+| `mise run install`  | `build`, then replaces `/Applications/Screenie.app`, launches it, and runs `cleanup`                                          |
+| `mise run cleanup`  | Deletes `build/` (DerivedData, archives, release artifacts)                                                                   |
+| `mise run generate` | Regenerates `Screenie.xcodeproj` from `project.yml`                                                                           |
+| `mise run release`  | Notarizes, tags, and publishes a GitHub release (see [Releasing](#releasing))                                                 |
+| `mise run docs`     | Previews this docs site                                                                                                       |
 
 `mise run dev` is for trying out changes without touching `/Applications`. It quits any running Screenie first, since both copies share a bundle ID. The app stays attached to the terminal, so crashes and anything it prints show up there. Don't turn on **Launch at login** from a dev build: the login item would point into `build/`.
 
@@ -142,3 +143,21 @@ This site lives in `docs/` and is built with VitePress:
 ```sh
 mise run docs   # or: cd docs && bun install && bun run dev
 ```
+
+### Screenshots for the docs
+
+To capture the app without showing your own files, run:
+
+```sh
+mise run demo
+```
+
+This renders eight fake screenshots (mock editor, chart, chat, and so on, aged 2 minutes to 12 days) into `build/demo-screenshots` with `scripts/make-samples.swift`, then runs the Debug app with `SCREENIE_FOLDER` pointing there. Only Debug builds read `SCREENIE_FOLDER`. To show the "new" dot, add one more from another terminal while the popover is closed:
+
+```sh
+swift scripts/make-samples.swift build/demo-screenshots --new
+```
+
+To capture only the popover, open it, press ⌘⇧4, then Space, and click the popover; hold Option while clicking to leave out the shadow. That way the desktop isn't in the shot. For video, press ⌘⇧5 and record a portion around the menu bar icon and popover; switch to a plain wallpaper first, and hide other menu bar icons if you don't want them in the clip.
+
+The site's screenshots live in `docs/public/screenshots/`: `popover.png` on the home page and `popover-hover.png` in [How it works](/how-it-works#the-popover). Pages show them at `width="406"`, half their pixel size, so they're sharp on Retina screens.

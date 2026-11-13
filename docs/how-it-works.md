@@ -17,6 +17,8 @@ Screenie remembers when you last looked, so a screenshot taken while Screenie wa
 
 The popover shows a two-column grid of up to 50 screenshots, newest first. Each one shows how long ago it was taken ("2 min. ago", "yesterday"). Hover over a thumbnail to see its file name; point at one of its buttons and the "ago" line names what the button does.
 
+<img src="/screenshots/popover-hover.png" width="406" alt="The Screenie popover: a two-column grid of screenshot thumbnails, one hovered with its checkbox, copy, share, trash, and Show in Finder buttons">
+
 | To… | Do this |
 | --- | --- |
 | Open in Preview (or your default image app) | Double-click the thumbnail |
