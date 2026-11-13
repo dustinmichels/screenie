@@ -4,9 +4,9 @@
 
 ### The menu bar icon
 
-| Icon | Meaning |
-| --- | --- |
-| Empty circle | No new screenshots |
+| Icon                            | Meaning                                                     |
+| ------------------------------- | ----------------------------------------------------------- |
+| Empty circle                    | No new screenshots                                          |
 | Circle with a dot in the center | You've taken a screenshot since you last opened the popover |
 
 Click the icon to open the popover. If the dot was showing, the popover scrolls to the top and outlines the newest screenshot, and the dot goes away. Screenshots you take while the popover is open count as seen right away.
@@ -19,15 +19,15 @@ The popover shows a two-column grid of up to 50 screenshots, newest first. Each 
 
 <img src="/screenshots/popover-hover.png" width="406" alt="The Screenie popover: a two-column grid of screenshot thumbnails, one hovered with its checkbox, copy, share, trash, and Show in Finder buttons">
 
-| To… | Do this |
-| --- | --- |
-| Open in Preview (or your default image app) | Double-click the thumbnail |
-| Copy the image | Hover → copy button, or right-click → **Copy Image** |
-| Show it in Finder | Hover → magnifying glass in the middle, or right-click → **Show in Finder** |
-| Move it to the Trash | Hover → trash button, or right-click → **Move to Trash…**, then confirm with Return (Escape cancels) |
-| Share it (AirDrop, Messages, Mail, …) | Hover → share button |
-| Put it in another app | Drag the thumbnail into a Finder window, email, chat, etc. |
-| Select several | Hover → checkbox in the top-left corner. Once one is ticked, every checkbox shows |
+| To…                                         | Do this                                                                                              |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Open in Preview (or your default image app) | Double-click the thumbnail                                                                           |
+| Copy the image                              | Hover → copy button, or right-click → **Copy Image**                                                 |
+| Show it in Finder                           | Hover → magnifying glass in the middle, or right-click → **Show in Finder**                          |
+| Move it to the Trash                        | Hover → trash button, or right-click → **Move to Trash…**, then confirm with Return (Escape cancels) |
+| Share it (AirDrop, Messages, Mail, …)       | Hover → share button                                                                                 |
+| Put it in another app                       | Drag the thumbnail into a Finder window, email, chat, etc.                                           |
+| Select several                              | Hover → checkbox in the top-left corner. Once one is ticked, every checkbox shows                    |
 
 With screenshots ticked, the hover buttons and right-click menu of any ticked screenshot act on all of them: **Show in Finder** opens one Finder window with them all selected, **Share** shares them together, **Move to Trash…** asks once for the lot, and **Open** opens each. **Copy Image** is disabled, since the clipboard holds one image. Actions on an unticked screenshot still affect only that one.
 
@@ -88,9 +88,9 @@ Screenie isn't sandboxed. Desktop, Documents, and Downloads are still protected 
 
 Measured with a Release build watching a folder of 33 screenshots:
 
-| State | CPU | Memory |
-| --- | --- | --- |
-| Idle, popover never opened | 0.0% | ~14 MB |
+| State                                          | CPU                       | Memory |
+| ---------------------------------------------- | ------------------------- | ------ |
+| Idle, popover never opened                     | 0.0%                      | ~14 MB |
 | After opening the popover (thumbnails decoded) | back to 0.0% within ~20 s | ~32 MB |
 
 ## Known limitations

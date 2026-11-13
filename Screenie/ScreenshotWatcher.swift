@@ -52,9 +52,10 @@ final class ScreenshotWatcher {
         // The query keeps its results sorted and current, so both notifications rebuild
         // from it; the update's added/removed/changed userInfo is not needed.
         for name in [Notification.Name.NSMetadataQueryDidFinishGathering, .NSMetadataQueryDidUpdate] {
-            observers.append(NotificationCenter.default.addObserver(
-                forName: name, object: query, queue: .main
-            ) { [weak self] _ in self?.reloadQuery() })
+            observers.append(
+                NotificationCenter.default.addObserver(
+                    forName: name, object: query, queue: .main
+                ) { [weak self] _ in self?.reloadQuery() })
         }
     }
 
@@ -102,16 +103,17 @@ final class ScreenshotWatcher {
         // Read lazily so skipped dot-files don't eat into the limit. Spotlight ignores a scope
         // it can't read (privacy denial, missing folder) and searches the whole disk instead,
         // so results outside `folder` are dropped.
-        queryItems = Array((0..<query.resultCount).lazy.compactMap { index -> Screenshot? in
-            guard let result = self.query.result(at: index) as? NSMetadataItem,
-                  let path = result.value(forAttribute: NSMetadataItemPathKey) as? String,
-                  path.hasPrefix(self.folderPrefix)
-            else { return nil }
-            let url = URL(fileURLWithPath: path)
-            guard !Self.isTemporary(url), !Self.isRecording(url) else { return nil }
-            let createdAt = result.value(forAttribute: "kMDItemContentCreationDate") as? Date ?? .distantPast
-            return Screenshot(url: url, createdAt: createdAt)
-        }.prefix(limit))
+        queryItems = Array(
+            (0..<query.resultCount).lazy.compactMap { index -> Screenshot? in
+                guard let result = self.query.result(at: index) as? NSMetadataItem,
+                    let path = result.value(forAttribute: NSMetadataItemPathKey) as? String,
+                    path.hasPrefix(self.folderPrefix)
+                else { return nil }
+                let url = URL(fileURLWithPath: path)
+                guard !Self.isTemporary(url), !Self.isRecording(url) else { return nil }
+                let createdAt = result.value(forAttribute: "kMDItemContentCreationDate") as? Date ?? .distantPast
+                return Screenshot(url: url, createdAt: createdAt)
+            }.prefix(limit))
         publish()
     }
 
@@ -155,9 +157,9 @@ final class ScreenshotWatcher {
         }
         let found = contents.compactMap { url -> Screenshot? in
             guard let values = try? url.resourceValues(forKeys: keys),
-                  values.isRegularFile == true,
-                  !Self.isRecording(url),
-                  Self.isScreenCapture(url)
+                values.isRegularFile == true,
+                !Self.isRecording(url),
+                Self.isScreenCapture(url)
             else { return nil }
             return Screenshot(url: url, createdAt: values.creationDate ?? .distantPast)
         }

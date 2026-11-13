@@ -3,12 +3,29 @@
 [tools]
 xcodegen = "2.46.0"
 bun = "1.4.4"
+"npm:oxfmt" = "0.78.0"
 
 # ─── Project ──────────────────────────────────────────────────────────────────
 
 [tasks.generate]
 description = "Regenerate Screenie.xcodeproj from project.yml"
 run = "xcodegen generate"
+
+# ─── Formatting ───────────────────────────────────────────────────────────────
+
+[tasks.fmt]
+description = "Format Swift sources (swift-format) and docs (oxfmt)"
+run = [
+  "swift format --in-place --recursive --parallel Screenie",
+  "oxfmt docs",
+]
+
+[tasks."fmt:check"]
+description = "Fail if any Swift sources or docs are unformatted"
+run = [
+  "swift format lint --strict --recursive --parallel Screenie",
+  "oxfmt --check docs",
+]
 
 # ─── Build & run ──────────────────────────────────────────────────────────────
 

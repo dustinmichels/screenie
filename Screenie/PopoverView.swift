@@ -249,7 +249,10 @@ private struct ScreenshotCell: View {
         // Hit-test the whole cell, not just the drawn thumbnail and text.
         .contentShape(Rectangle())
         // Hover buttons are removed with the cell's hover, which may skip their own exit callback.
-        .onHover { isHovering = $0; if !$0 { hoveredAction = nil } }
+        .onHover {
+            isHovering = $0
+            if !$0 { hoveredAction = nil }
+        }
         .onTapGesture(count: 2) { ScreenshotActions.open(shot.url) }
         // Drag out as a file; the provider reads the file only when a drop target asks.
         .onDrag { NSItemProvider(contentsOf: shot.url) ?? NSItemProvider() }
@@ -279,11 +282,14 @@ private struct ScreenshotCell: View {
             Image(systemName: "checkmark")
                 .font(.system(size: 9, weight: .bold))
                 .foregroundStyle(
-                    isSelected ? AnyShapeStyle(.white)
+                    isSelected
+                        ? AnyShapeStyle(.white)
                         : hoveredAction == .select ? AnyShapeStyle(.secondary) : AnyShapeStyle(.clear)
                 )
                 .frame(width: 18, height: 18)
-                .background(isSelected ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.regularMaterial), in: Circle())
+                .background(
+                    isSelected ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.regularMaterial), in: Circle()
+                )
                 .overlay {
                     if !isSelected { Circle().strokeBorder(.secondary, lineWidth: 1) }
                 }
@@ -299,7 +305,7 @@ private struct ScreenshotCell: View {
         HStack(spacing: 2) {
             iconButton(didCopy ? "checkmark" : "doc.on.doc", action: .copy, isEnabled: canCopy, perform: copy)
             iconButton("square.and.arrow.up", action: .share, perform: share)
-            .background(AnchorView(box: shareButtonAnchor))
+                .background(AnchorView(box: shareButtonAnchor))
             iconButton("trash", action: .trash, perform: requestTrash)
         }
         .padding(2)
